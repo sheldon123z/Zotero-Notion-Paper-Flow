@@ -1,0 +1,6 @@
+requests
+beautifulsoup4
+arxiv>=2.1.0
+tqdm
+openai>=1.28.0
+slack_sdk

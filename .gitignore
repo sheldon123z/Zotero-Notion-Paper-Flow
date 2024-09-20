@@ -1,0 +1,142 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the binary.
+#  See https://github.com/pyinstaller/pyinstaller/issues/1610
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+.venv/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# PyCharm
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytest
+.cache/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+*.cover
+*.py,cover
+.cache
+nosetests.xml
+coverage.xml
+*.coveragerc
+*.codecov.yml
+*.pylint.d
+
+# Environments
+.env
+.envrc
+*.env
+*.env.*
+
+# dotenv
+*.local
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite3
+
+# CMake
+CMakeLists.txt.user
+
+# Local development
+local_settings.py
+
+# Anaconda distribution environments
+.conda/
+*.condarc
+*.conda
+*.continuum/
+
+# JupyterLab state and checkpoints
+.luacheckrc
+.jupyter/
+
+# Docker
+docker-compose.override.yml
+
+# Flask and Django specific files (if applicable)
+instance/
+.webassets-cache
+*.pot
+*.pyc
+
+# Other specific files
+**/__pypackages__/
+**/output/
+**/bin/*.sh
