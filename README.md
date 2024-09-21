@@ -29,19 +29,32 @@
 ![申请新的key](assets/zotero_key.png)
 
 ## 安装依赖
-
+### 直接安装（不推荐）
 ```bash
 pip install requirements.txt
 ```
+### 使用Conda虚拟环境
+使用conda环境的话，可以创建一个新的conda环境，然后安装依赖：
 
+```bash
+conda create -n daily_paper_app python=3.10
+conda activate daily_paper_app
+pip install requirements.txt
+```
+### 使用pyvenv虚拟环境
+使用pyvenv的话，可以创建一个新的虚拟环境，然后安装依赖：
+
+```bash
+python3 -m venv daily_paper_app
+source daily_paper_app/bin/activate
+python setup.py install
+```
 
 ## 修改启动脚本
 
 修改`bin/start_daily_paper_app.sh`中SLACK_API_KEY、KIMI_API_KEY、NOTION_SECRET、NOTION_DB_ID、ZOTERO_API_KEY、ZOTERO_API_SECRET，其中Zotero的API需要到页面版本Zotero中申请，申请后需要将Zotero API Key和Zotero API Secret填入，否则无法将论文添加到Zotero中，同时，请务必修改每在daily_paper_app.py中每个collection的编号，不然会插入新条目失败
 
 如上所述，只有KIMI_API_KEY是必须的，其他的如果不需要可以随意输入其他字符串，如果需要使用其他的LLM，请修改`src/service/llm_service.py`中相关配置以及`bin/start_daily_paper_app.sh`中相关配置
-
-
 
 
 ## 启动程序
