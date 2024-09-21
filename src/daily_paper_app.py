@@ -105,11 +105,10 @@ if __name__ == '__main__':
 
 # 获取最近 10 天的日期列表，格式为 YYYY-MM-DD
     # last_10_days = [(datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(10)]
-
     # for dt in last_10_days:
     #     print(dt)  # 输出日期
     #     try:
     #         main(dt)  # 调用 main 函数
     #     except Exception as e:
     #         print(f"Error processing date {dt}: {e}")
-    main('2024-09-21')
+    main()

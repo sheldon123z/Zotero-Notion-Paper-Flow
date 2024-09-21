@@ -67,7 +67,7 @@ def chat(prompt, retry_count=6, service="kimi", response_format="text", **kwargs
         except requests.exceptions.ConnectionError as e:
             logger.error(f"连接错误: {e}")
             raise
-    return do_request()
+    # return do_request()
     # for attempt in range(retry_count):
     #     try:
     #         return do_request()  # 成功时直接返回结果
@@ -83,6 +83,15 @@ def chat(prompt, retry_count=6, service="kimi", response_format="text", **kwargs
     #     except Exception as e:
     #         logger.error(f"未处理的异常: {e}, 不再进行重试")
     #         break
+    while retry_count > 0:
+        try:
+            return do_request()
+        except Exception as e:
+            sleeping_seconds = (4 - retry_count) * 2
+            retry_count -= 1
+            logger.warning(f"{e} sleeping {sleeping_seconds}s, prompt: {prompt}")
+            time.sleep(sleeping_seconds)
+    return ""
 
     # logger.error("所有尝试均失败，返回空字符串")
     # return ""  # 如果所有重试都失败，返回空字符串

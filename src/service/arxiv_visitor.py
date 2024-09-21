@@ -205,12 +205,12 @@ class ArxivVisitor:
 
     def find_by_id(self, id_or_idlist, hf_obj=None, format_result=True) -> Union[FormattedArxivObj, arxiv.Result]:
         cache_filename = os.path.join(self.cache_dir, f'{id_or_idlist}.pkl')
-        # if os.path.exists(cache_filename):
-        #     logger.info(f"find_by_id cache hit at {cache_filename}")
-        #     result = pickle.load(open(cache_filename, 'rb'))
-        # else:
-        #     result = next(self.client.results(arxiv.Search(id_list=id_or_idlist if isinstance(id_or_idlist, list) else [id_or_idlist])))
-        result = next(self.client.results(arxiv.Search(id_list=id_or_idlist if isinstance(id_or_idlist, list) else [id_or_idlist])))
+        if os.path.exists(cache_filename):
+            logger.info(f"find_by_id cache hit at {cache_filename}")
+            result = pickle.load(open(cache_filename, 'rb'))
+        else:
+            result = next(self.client.results(arxiv.Search(id_list=id_or_idlist if isinstance(id_or_idlist, list) else [id_or_idlist])))
+        # result = next(self.client.results(arxiv.Search(id_list=id_or_idlist if isinstance(id_or_idlist, list) else [id_or_idlist])))
         pickle.dump(result, open(cache_filename, 'wb'))
         logger.info(f"Title: {result.title}")
         logger.info(f"Authors: {', '.join(author.name for author in result.authors)}")
