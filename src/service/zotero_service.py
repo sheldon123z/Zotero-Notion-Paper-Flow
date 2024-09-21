@@ -18,36 +18,6 @@ class ZoteroService:
         self.user_id = user_id
         self.create_time = create_time
         self.use_proxy = use_proxy
-        # 初始化 item_data
-        # self.item_data = [
-        #     {
-        #         "itemType": "preprint",
-        #         "title": "",
-        #         "creators": [
-        #             {
-        #                 "creatorType": "author",
-        #                 "name": ""
-        #             }
-        #         ],
-        #         "abstractNote": "",
-        #         "websiteTitle": "",
-        #         "websiteType": "",
-        #         "date": "",
-        #         "shortTitle": "",
-        #         "url": "",
-        #         "accessDate": "2014-06-12T21:28:55Z",
-        #         "language": "",
-        #         "rights": "",
-        #         "extra": "",
-        #         "dateAdded": "2014-06-12T21:28:55Z",
-        #         "dateModified": "2014-06-12T21:28:55Z",
-        #         "tags": [],
-        #         "collections": [],
-        #         "relations": {},
-        #         "DOI": "",
-        #         "language": "en-US",
-        #     }
-        # ]
         self.item_data= []
         # self.item_data = [{
         #             "itemType": "preprint",
