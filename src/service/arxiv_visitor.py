@@ -6,6 +6,7 @@ import os
 import pickle
 import re
 import copy
+import sys
 from typing import Union, List
 from urllib.request import urlretrieve
 
@@ -40,33 +41,46 @@ class ArxivVisitor:
         logger.info(f"processing tldr for {cache_obj['id']}")
 
         keys = ('动机', '方法', '结果')
+        
         if 'tldr' in cache_obj and all([key in cache_obj['tldr'] and cache_obj['tldr'][key].strip() != '' for key in keys]):
             logger.info(f"processing tldr found cache")
             return
-
+        # 检查是否有缓存
         if 'raw_tldr' in cache_obj and cache_obj['raw_tldr'].strip() != '':
-            tldr = cache_obj['raw_tldr']
+            tldr = json.loads(cache_obj['raw_tldr'])
         else:
-            tldr = llm_service.chat(
-                f'下面这段话（<summary></summary>之间的部分）是一篇论文的摘要，请基于摘要信息总结论文的动机、方法、结果，请使用中文表述，结果请输出三行，分别以“动机“、“方法”、“结果”开头，与对应的值使用制表符“\\t”分割，如果某一项不存在，请输出空字符串，请认真回答，如果回答的好我会给你很多小费：\n<summary>{summary}</summary>')
-            cache_obj['raw_tldr'] = tldr
+            prmpt = f'''下面这段话（<summary></summary>之间的部分）
+            是一篇论文的摘要，请基于摘要信息总结论文的动机、方法、结果，请使用中文表述，
+            结果请输出三行，分别以“动机“、“方法”、“结果”开头，
+            {{
+                "动机": "xxx",
+                "方法": "xxx",
+                "结果": "xxx"
+            }}
+            如果某一项不存在，请输出空字符串，请认真回答，
+            如果回答的好我会给你很多小费：\n<summary>{summary}</summary>'''
+            tldr_string = llm_service.chat(
+                prompt=prmpt,
+                response_type='json_object'
+                )
+            # 去掉可能影响传输的转义字符
+            tldr_clean = re.sub(r'\\[nt\\]', '', tldr_string)
+            cache_obj['raw_tldr'] = re.sub(r'\\[nt\\]', '', tldr_clean)
         try:
-            parsed_tldr = {}
-            for line in tldr.split('\n'):
-                if line.strip() == '':
-                    continue
-                parts = line.split('\t')
-                parsed_tldr.update({parts[0]: '\t'.join(parts[1:]).replace('\\t', '\t').strip()})
+            tldr = json.loads(tldr_clean)
         except Exception as e:
-            logger.error(e)
+            logger.error(f"tldr is not a json object: {tldr_clean}")
+            # 终止程序
+            sys.exit(1)
+            return
 
         if 'tldr' not in cache_obj:
             cache_obj['tldr'] = {}
 
-        cache_obj['tldr'].update(parsed_tldr)
+        cache_obj['tldr'].update(tldr)
         for key in keys:
             if key not in cache_obj['tldr']:
-                logger.warning(f"{key} not int parsed tldr")
+                logger.warning(f"{key} not in tldr")
                 cache_obj['tldr'][key] = ''
         json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)
 
@@ -174,7 +188,10 @@ class ArxivVisitor:
             tags=cache_obj['tag_info']['标签'],
             arxiv_result=arxiv_result,
             media_type='' if hf_obj is None else hf_obj['media_type'],
-            media_url='' if hf_obj is None else hf_obj['media_url']
+            media_url='' if hf_obj is None else hf_obj['media_url'],
+            journal_ref = arxiv_result.journal_ref,
+            doi = arxiv_result.doi,
+            arxiv_categories = arxiv_result.categories
         )
         logger.info(f'saving cache_obj to {cache_filename}')
         json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)

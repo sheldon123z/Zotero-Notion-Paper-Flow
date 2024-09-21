@@ -8,6 +8,7 @@ import requests
 import json
 import os
 import common_utils
+from common_utils.json_templates import *
 from entity.formatted_arxiv_obj import FormattedArxivObj
 logger = common_utils.get_logger(__name__)
 class ZoteroService:

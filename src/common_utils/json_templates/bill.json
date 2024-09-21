@@ -1,0 +1,30 @@
+{
+    "itemType": "bill",
+    "title": "",
+    "creators": [
+        {
+            "creatorType": "sponsor",
+            "firstName": "",
+            "lastName": ""
+        }
+    ],
+    "abstractNote": "",
+    "billNumber": "",
+    "code": "",
+    "codeVolume": "",
+    "section": "",
+    "codePages": "",
+    "legislativeBody": "",
+    "session": "",
+    "history": "",
+    "date": "",
+    "language": "",
+    "url": "",
+    "accessDate": "",
+    "shortTitle": "",
+    "rights": "",
+    "extra": "",
+    "tags": [],
+    "collections": [],
+    "relations": {}
+}

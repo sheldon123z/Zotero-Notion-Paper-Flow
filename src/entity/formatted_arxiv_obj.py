@@ -23,3 +23,6 @@ class FormattedArxivObj:
     arxiv_result: arxiv.Result
     media_type: str
     media_url: str
+    journal_ref: str
+    doi: str
+    arxiv_categories: list

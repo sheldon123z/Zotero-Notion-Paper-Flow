@@ -1,0 +1,28 @@
+{
+    "itemType": "artwork",
+    "title": "",
+    "creators": [
+        {
+            "creatorType": "artist",
+            "firstName": "",
+            "lastName": ""
+        }
+    ],
+    "abstractNote": "",
+    "artworkMedium": "",
+    "artworkSize": "",
+    "date": "",
+    "language": "",
+    "shortTitle": "",
+    "archive": "",
+    "archiveLocation": "",
+    "libraryCatalog": "",
+    "callNumber": "",
+    "url": "",
+    "accessDate": "",
+    "rights": "",
+    "extra": "",
+    "tags": [],
+    "collections": [],
+    "relations": {}
+}

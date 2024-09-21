@@ -13,7 +13,7 @@ import common_utils
 logger = common_utils.get_logger(__name__)
 
 
-def chat(prompt, retry_count=3, service='kimi'):
+def chat(prompt, retry_count=3, service='kimi',response_type='text'):
     client = OpenAI(
         api_key=os.environ['KIMI_API_KEY'],
         base_url="https://api.moonshot.cn/v1",
@@ -28,7 +28,9 @@ def chat(prompt, retry_count=3, service='kimi'):
         resp = client.chat.completions.create(
             model=model_name,
             messages=messages,
-            temperature=0.6
+            temperature=0.6,
+            response_format ={"type": f"{response_type}"},
+            
         )
         return resp.choices[0].message.content
 

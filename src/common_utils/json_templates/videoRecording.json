@@ -1,0 +1,34 @@
+{
+    "itemType": "videoRecording",
+    "title": "",
+    "creators": [
+        {
+            "creatorType": "director",
+            "firstName": "",
+            "lastName": ""
+        }
+    ],
+    "abstractNote": "",
+    "videoRecordingFormat": "",
+    "seriesTitle": "",
+    "volume": "",
+    "numberOfVolumes": "",
+    "place": "",
+    "studio": "",
+    "date": "",
+    "runningTime": "",
+    "language": "",
+    "ISBN": "",
+    "shortTitle": "",
+    "url": "",
+    "accessDate": "",
+    "archive": "",
+    "archiveLocation": "",
+    "libraryCatalog": "",
+    "callNumber": "",
+    "rights": "",
+    "extra": "",
+    "tags": [],
+    "collections": [],
+    "relations": {}
+}

@@ -1,0 +1,36 @@
+{
+    "itemType": "encyclopediaArticle",
+    "title": "",
+    "creators": [
+        {
+            "creatorType": "author",
+            "firstName": "",
+            "lastName": ""
+        }
+    ],
+    "abstractNote": "",
+    "encyclopediaTitle": "",
+    "series": "",
+    "seriesNumber": "",
+    "volume": "",
+    "numberOfVolumes": "",
+    "edition": "",
+    "place": "",
+    "publisher": "",
+    "date": "",
+    "pages": "",
+    "ISBN": "",
+    "shortTitle": "",
+    "url": "",
+    "accessDate": "",
+    "language": "",
+    "archive": "",
+    "archiveLocation": "",
+    "libraryCatalog": "",
+    "callNumber": "",
+    "rights": "",
+    "extra": "",
+    "tags": [],
+    "collections": [],
+    "relations": {}
+}
