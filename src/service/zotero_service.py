@@ -48,44 +48,44 @@ class ZoteroService:
         #         "language": "en-US",
         #     }
         # ]
-        
-        self.item_data = [{
-                    "itemType": "preprint",
-                    "title": "",
-                    "creators": [
-                        {
-                            "creatorType": "author",
-                            "firstName": "",
-                            "lastName": ""
-                        }
-                    ],
-                    "abstractNote": "",
-                    "genre": "",
-                    "repository": "",
-                    "archiveID": "",
-                    "place": "",
-                    "date": "",
-                    "series": "",
-                    "seriesNumber": "",
-                    "DOI": "",
-                    "citationKey": "",
-                    "url": "",
-                    "accessDate": "",
-                    "archive": "",
-                    "archiveLocation": "",
-                    "shortTitle": "",
-                    "language": "",
-                    "libraryCatalog": "",
-                    "callNumber": "",
-                    "rights": "",
-                    "extra": "",
-                    "tags": [],
-                    "collections": [],
-                    "relations": {}
-                }]
-        # self.data = self.load_json_from_directory(directory="src/common_utils/json_templates/", target_filename=item_type + ".json")
-        # if self.data:
-        #     self.item_data.append(json.dumps(self.data, ensure_ascii=False, indent=4))
+        self.item_data= []
+        # self.item_data = [{
+        #             "itemType": "preprint",
+        #             "title": "",
+        #             "creators": [
+        #                 {
+        #                     "creatorType": "author",
+        #                     "firstName": "",
+        #                     "lastName": ""
+        #                 }
+        #             ],
+        #             "abstractNote": "",
+        #             "genre": "",
+        #             "repository": "",
+        #             "archiveID": "",
+        #             "place": "",
+        #             "date": "",
+        #             "series": "",
+        #             "seriesNumber": "",
+        #             "DOI": "",
+        #             "citationKey": "",
+        #             "url": "",
+        #             "accessDate": "",
+        #             "archive": "",
+        #             "archiveLocation": "",
+        #             "shortTitle": "",
+        #             "language": "",
+        #             "libraryCatalog": "",
+        #             "callNumber": "",
+        #             "rights": "",
+        #             "extra": "",
+        #             "tags": [],
+        #             "collections": [],
+        #             "relations": {}
+        #         }]
+        self.data = self.load_json_from_directory(directory="src/common_utils/json_templates/", target_filename=item_type + ".json")
+        if self.data:
+            self.item_data.append(self.data)
     
     def load_json_from_directory(self, directory, target_filename):
         # 获取文件夹中所有的文件列表
@@ -110,13 +110,13 @@ class ZoteroService:
     # 更新 title 和 url 的方法
     def update_title_and_url(self, new_title, new_url):
         logger.info(f"更新标题为: {new_title} 和URL为: {new_url}")
-        self.item_data['title'] = new_title
-        self.item_data['url'] = new_url
+        self.item_data[0]['title'] = new_title
+        self.item_data[0]['url'] = new_url
 
     # 更新 creators 的方法
     def update_creators(self, new_authors):
         logger.info(f"更新创建者为: {new_authors}")
-        self.item_data['creators'] = [{"creatorType": "author", "name": author} for author in new_authors]
+        self.item_data[0]['creators'] = [{"creatorType": "author", "name": author} for author in new_authors]
 
 
     # 更新 dateAdded 和 dateModified 的方法
@@ -147,10 +147,10 @@ class ZoteroService:
             formatted_date_modified = new_date_modified.strftime('%Y-%m-%d %H:%M:%S')
             formatted_date = new_date_added.strftime('%Y-%m-%d')
             # 更新 item_data
-            self.item_data['dateAdded'] = formatted_date_added
-            self.item_data['date'] = formatted_date
-            self.item_data['dateModified'] = formatted_date_modified
-            self.item_data['accessDate'] = formatted_date_modified
+            self.item_data[0]['dateAdded'] = formatted_date_added
+            self.item_data[0]['date'] = formatted_date
+            self.item_data[0]['dateModified'] = formatted_date_modified
+            self.item_data[0]['accessDate'] = formatted_date_modified
         else:
             logger.error("无法更新日期格式导致失败。")
 
@@ -158,95 +158,95 @@ class ZoteroService:
     # 每个方法添加 logger.info 记录更新信息
     def update_tags(self, new_tags, arxiv_categories):
         logger.info(f"更新标签为: {new_tags}")
-        self.item_data['tags'] = [{"tag": tag} for tag in new_tags]
+        self.item_data[0]['tags'] = [{"tag": tag} for tag in new_tags]
         if arxiv_categories:
             logger.info(f"将 arxiv 分类添加到标签: {arxiv_categories}")
             sharp_tags = [{"tag":f"#{category}"} for category in arxiv_categories]
-            self.item_data['tags'].extend(sharp_tags)
-            logger.info(f"新标签为: {self.item_data['tags']}")
+            self.item_data[0]['tags'].extend(sharp_tags)
+            logger.info(f"新标签为: {self.item_data[0]['tags']}")
 
     # 更新 accessDate 的方法
     def update_access_date(self, new_access_date):
         pass
 
     def update_abstract(self, new_abstract):
-        if 'abstractNote' in self.item_data:
+        if 'abstractNote' in self.item_data[0]:
             logger.info(f"正在更新摘要为: {new_abstract}")
-            self.item_data['abstractNote'] = new_abstract
+            self.item_data[0]['abstractNote'] = new_abstract
         else:
             logger.info("键 'abstractNote' 不存在于 item_data 中，跳过更新。")
 
     def update_collections(self, new_collections):
-        if 'collections' in self.item_data:
+        if 'collections' in self.item_data[0]:
             logger.info(f"正在更新收藏集为: {new_collections}")
-            self.item_data['collections'] = [collection for collection in new_collections]
+            self.item_data[0]['collections'] = [collection for collection in new_collections]
         else:
             logger.info("键 'collections' 不存在于 item_data 中，跳过更新。")
 
     def update_website_title(self, new_website_title):
-        if 'websiteTitle' in self.item_data:
+        if 'websiteTitle' in self.item_data[0]:
             logger.info(f"正在更新网站标题为: {new_website_title}")
-            self.item_data['websiteTitle'] = new_website_title
+            self.item_data[0]['websiteTitle'] = new_website_title
         else:
             logger.info("键 'websiteTitle' 不存在于 item_data 中，跳过更新。")
 
     def update_website_type(self, new_website_type):
-        if 'websiteType' in self.item_data:
+        if 'websiteType' in self.item_data[0]:
             logger.info(f"正在更新网站类型为: {new_website_type}")
-            self.item_data['websiteType'] = new_website_type
+            self.item_data[0]['websiteType'] = new_website_type
         else:
             logger.info("键 'websiteType' 不存在于 item_data 中，跳过更新。")
 
     def update_short_title(self, new_short_title):
-        if 'shortTitle' in self.item_data:
+        if 'shortTitle' in self.item_data[0]:
             logger.info(f"正在更新短标题为: {new_short_title}")
-            self.item_data['shortTitle'] = new_short_title
+            self.item_data[0]['shortTitle'] = new_short_title
         else:
             logger.info("键 'shortTitle' 不存在于 item_data 中，跳过更新。")
 
     def update_language(self, new_language):
-        if 'language' in self.item_data:
+        if 'language' in self.item_data[0]:
             logger.info(f"正在更新语言为: {new_language}")
-            self.item_data['language'] = new_language
+            self.item_data[0]['language'] = new_language
         else:
             logger.info("键 'language' 不存在于 item_data 中，跳过更新。")
 
     def update_rights(self, new_rights):
-        if 'rights' in self.item_data:
+        if 'rights' in self.item_data[0]:
             logger.info(f"正在更新权限为: {new_rights}")
-            self.item_data['rights'] = new_rights
+            self.item_data[0]['rights'] = new_rights
         else:
             logger.info("键 'rights' 不存在于 item_data 中，跳过更新。")
 
     def update_extra(self, new_extra):
-        if 'extra' in self.item_data:
+        if 'extra' in self.item_data[0]:
             logger.info(f"正在更新附加信息为: {new_extra}")
-            self.item_data['extra'] = new_extra
+            self.item_data[0]['extra'] = new_extra
         else:
             logger.info("键 'extra' 不存在于 item_data 中，跳过更新。")
 
     def update_relations(self, new_relations):
-        if 'relations' in self.item_data:
+        if 'relations' in self.item_data[0]:
             logger.info(f"正在更新关系为: {new_relations}")
-            self.item_data['relations'] = new_relations
+            self.item_data[0]['relations'] = new_relations
         else:
             logger.info("键 'relations' 不存在于 item_data 中，跳过更新。")
 
     def update_doi(self, new_doi):
-        if 'DOI' in self.item_data:
+        if 'DOI' in self.item_data[0]:
             logger.info(f"正在更新 DOI 为: {new_doi}")
             if new_doi == None:
                 logger.info("本篇文章没有DOI。")
-                self.item_data['DOI'] = ''
+                self.item_data[0]['DOI'] = ''
             else:
-                self.item_data['DOI'] = new_doi
+                self.item_data[0]['DOI'] = new_doi
         else:
             logger.info("键 'DOI' 不存在于 item_data 中，跳过更新。")
 
     def update_journal_reference(self, new_journal_reference):
-        if 'journalAbbreviation' in self.item_data:
+        if 'journalAbbreviation' in self.item_data[0]:
             logger.info(f"正在更新期刊缩写为: {new_journal_reference}")
-            self.item_data['journalAbbreviation'] = new_journal_reference
+            self.item_data[0]['journalAbbreviation'] = new_journal_reference
         else:
             logger.info("键 'journalAbbreviation' 不存在于 item_data 中，跳过更新。")
 
@@ -258,16 +258,16 @@ class ZoteroService:
             for key in tldr_keys:
                 if key in new_tldr and new_tldr[key] != '':
                     # 将 key 和对应的值追加到 extra 中
-                    if 'extra' in self.item_data:
-                        self.item_data['extra'] += f"\n{key}: {new_tldr[key]}"
+                    if 'extra' in self.item_data[0]:
+                        self.item_data[0]['extra'] += f"\n{key}: {new_tldr[key]}"
                     else:
                         # 如果 'extra' 还不存在，初始化它
-                        self.item_data['extra'] = f"{key}: {new_tldr[key]}"
+                        self.item_data[0]['extra'] = f"{key}: {new_tldr[key]}"
     
     # 打印当前 item_data 的方法
     def get_item_data(self):
-        logger.info(f"Current item_data: {self.item_data}")
-        return self.item_data
+        logger.info(f"Current item_data: {self.item_data[0]}")
+        return self.item_data[0]
 
     def insert(self, formatted_arxiv_obj: FormattedArxivObj,collection=["DFGZNVCM"]):
         url = f"https://api.zotero.org/users/{self.user_id}/items"
@@ -292,7 +292,7 @@ class ZoteroService:
         self.update_collections(collection)
         self.update_doi(formatted_arxiv_obj.doi)
         self.update_journal_reference(formatted_arxiv_obj.journal_ref)
-        # self.update_tldr(formatted_arxiv_obj.tldr) # 更新 tldr, 如果存在, 也可以换成其他的字段
+        self.update_tldr(formatted_arxiv_obj.tldr) # 更新 tldr, 如果存在, 也可以换成其他的字段
         logger.info(f"item_data 准备提交: {self.item_data}")
 
         # 进行 API 请求，捕捉可能的错误

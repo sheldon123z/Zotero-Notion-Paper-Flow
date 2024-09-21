@@ -18,19 +18,6 @@ from service import llm_service
 
 logger = common_utils.get_logger(__name__)
 
-# 使用这种方法不保险
-# def extract_json(ret_json_str):
-#     try:
-#         parsed_ret = ret_json_str.replace('```json\n', '').replace('\n```', '')
-#         parsed_ret = json.loads(parsed_ret)
-#     except Exception as e:
-#         print(e)
-#         json_pattern = r'\{.*?\}'
-#         parsed_ret = re.findall(json_pattern, ret_json_str, re.DOTALL)[0]
-#         parsed_ret = json.loads(parsed_ret)
-#     return parsed_ret
-
-
 class ArxivVisitor:
     def __init__(self, output_dir, page_size=10, disable_cache=False):
         self.cache_dir = os.path.join(output_dir, 'cache')
@@ -59,24 +46,13 @@ class ArxivVisitor:
             }}
             如果某一项不存在，请输出空字符串，请认真回答，
             如果回答的好我会给你很多小费：\n<summary>{summary}</summary>'''
-            tldr_string = llm_service.chat(
+            tldr = llm_service.chat(
                 prompt=prmpt,
-                response_type='json_object'
+                response_format='json_object' 
                 )
-            # 去掉可能影响传输的转义字符
-            tldr_clean = re.sub(r'\\[nt\\]', '', tldr_string)
-            cache_obj['raw_tldr'] = re.sub(r'\\[nt\\]', '', tldr_clean)
-        try:
-            tldr = json.loads(tldr_clean)
-        except Exception as e:
-            logger.error(f"tldr is not a json object: {tldr_clean}")
-            # 终止程序
-            sys.exit(1)
-            return
-
+            cache_obj['raw_tldr'] = json.dumps(tldr) # 保存成字符串格式
         if 'tldr' not in cache_obj:
             cache_obj['tldr'] = {}
-
         cache_obj['tldr'].update(tldr)
         for key in keys:
             if key not in cache_obj['tldr']:
@@ -89,7 +65,8 @@ class ArxivVisitor:
         if 'summary_cn' in cache_obj:
             logger.info(f"processing summary found cache")
             return
-        summary_cn = llm_service.chat(f'这段话是一篇论文的摘要，请把它翻译为中文：\n{summary}')
+        prompt = f"""这段话是一篇论文的摘要，请你使用中文进行翻译：\n{summary}"""
+        summary_cn = llm_service.chat(prompt=prompt)
         cache_obj['summary_cn'] = summary_cn
         json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)
         
@@ -100,13 +77,16 @@ class ArxivVisitor:
             return
         
         # 调用 llm_service.chat，返回的可能是列表或其他格式，确保转换为字符串
-        short_summary = llm_service.chat(f'这段话是一篇论文的摘要，请你使用中文用进行不超过50字的主题简介,注意不要使用任何的markdown格式标点符号，也不要写任何的公式：\n{summary}')
+        prompt = f"""这段话是一篇论文的摘要，请你使用中文用进行不超过50字的主题简介,
+                                         注意不要使用任何的markdown格式标点符号，
+                                         也不要写任何的公式：\n {summary} \n"""
+        short_summary = llm_service.chat(prompt=prompt)
         
-        # 确保 short_summary 是字符串
-        if isinstance(short_summary, list):
-            short_summary = ''.join(short_summary)  # 将列表转换为单个字符串
-        elif not isinstance(short_summary, str):
-            short_summary = str(short_summary)  # 将其他非字符串类型转换为字符串
+        # # 确保 short_summary 是字符串
+        # if isinstance(short_summary, list):
+        #     short_summary = ''.join(short_summary)  # 将列表转换为单个字符串
+        # elif not isinstance(short_summary, str):
+        #     short_summary = str(short_summary)  # 将其他非字符串类型转换为字符串
         
         # 将结果保存到缓存对象并写入文件
         cache_obj['short_summary'] = short_summary
@@ -137,15 +117,38 @@ class ArxivVisitor:
         if 'tag_info_raw' in cache_obj and cache_obj['tag_info_raw'].strip() != '':
             tag_info = cache_obj['tag_info_raw']
         else:
-            tag_info =llm_service.function_call_chat(summary) #得到json格式的tag_info
-            cache_obj['tag_info_raw'] = tag_info
+            prompt = f"""
+                        以下是论文摘要内容：\n {summary}\n
+
+                        请参考论文摘要内容，判断该论文的主要研究领域（例如RL、MTS、NLP、多模态、CV、MARL、LLM等）请你尽量使用英文专业名词的简写，
+                        并总结出最多6个高度概括文章主题的标签,并在最后一定加入一个"/unread"标签。
+                        请根据论文摘要灵活确定"主要领域"和"标签"的内容，注意，“主要领域”
+                        只能有一个，并使用以下JSON格式回复：
+                        {{
+                        "主要领域": "LLM",
+                        "标签": [
+                            "instruction-tuning",
+                            "language models",
+                            "training data selection",
+                            "learning percentage",
+                            "data hardness",
+                            "Reinforcement Learning",
+                            "/unread",
+                        ]
+                        }}
+                        """
+            # 调用大模型
+            tag_info =llm_service.chat(prompt,service="kimi",response_format="json_object",temperature=0.1)
+            # 将结果保存到缓存对象并写入文件
+            cache_obj['tag_info_raw'] = json.dumps(tag_info)
             
-        # 这里为了避免切换其他不带function call功能的模型，还是保留parsed_tag_info这个词典
-        parsed_tag_info = copy.deepcopy(tag_info)
         if 'tag_info' not in cache_obj:
             cache_obj['tag_info'] = {}
+
+        print(f"taginfo is : ############# {type(tag_info)}")
         #更新cache_obj['tag_info']
         cache_obj['tag_info'].update(tag_info)
+        # print(f"taginfo is : ############# {cache_obj['tag_info']}")
 
         json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)
 
