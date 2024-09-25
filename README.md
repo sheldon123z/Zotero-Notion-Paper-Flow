@@ -2,17 +2,21 @@
 本项目升级修改自github某一个repo...时间久远找不到原repo是哪个了，原作者请见谅！
 
 
-本项目可以扫描HuggingFace的[Daily Papers](https://huggingface.co/papers)页面，解析页面，获取相关论文标题、截图、ID等，调用Arxiv库获取论文更完善的信息，调用LLM API（目前是调用的是Moonshot API）对摘要进行分析，首先翻译成中文，然后解析摘要中提到的论文的动机、方法、结果，并尝试对论文打标签，最后将解析结果，原始论文的链接，使用Notion API，发送到Notion和**Zotero**。
+本项目可以扫描HuggingFace的[Daily Papers](https://huggingface.co/papers)页面，解析页面，获取相关论文标题、截图、ID等，调用Arxiv库获取论文更完善的信息，调用LLM API（目前是调用的是Moonshot API）对摘要进行分析，首先翻译成中文，然后解析摘要中提到的论文的动机、方法、结果，并尝试对论文打标签，最后将解析结果，原始论文的链接，使用Notion API，发送到Notion和**Zotero** API。
 
 最终的效果如下图所示：
 
-论文主列表：
+Zotero展示：
+
+![](assets/zotero.png)
+
+Notion 论文主列表：
 
 ![](assets/main_list.png)
 
 详情页：
 
-![](assets/detail.png)
+![](assets/all.png)
 
 # 快速上手
 
