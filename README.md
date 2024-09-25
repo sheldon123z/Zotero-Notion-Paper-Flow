@@ -62,6 +62,9 @@ python setup.py install
 ```bash
 sh bin/start_daily_paper_app_example.sh
 ```
+## 修改配置文件
+新增了在arxiv上使用分类进行搜索的能力，具体说明可看[这里](./src/service/config_setting.md)
+
 ---
 ## 定时调度
 
@@ -110,7 +113,7 @@ cd /path/to/this/project
 
 ### 进行中的任务 ⏳
 
-- [ ] 增加 arxiv 特定领域论文订阅
+- [x] 增加 arxiv 特定领域论文订阅
 - [ ] 触发器增加邮件/消息/微信通知
 - [ ] 增加本地模型调用
 
