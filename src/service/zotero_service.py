@@ -238,8 +238,44 @@ class ZoteroService:
     def get_item_data(self):
         logger.info(f"Current item_data: {self.item_data[0]}")
         return self.item_data[0]
+    
+    def item_exists(self, doi=None, arxiv_id=None, title=None):
+        url = f"https://api.zotero.org/users/{self.user_id}/items"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+        }
 
+        proxies = {
+            'http': 'http://127.0.0.1:7890',
+            'https': 'http://127.0.0.1:7890',
+        } if self.use_proxy else None
+
+        # 构建查询参数
+        if doi:
+            params = {'q': doi, 'qmode': 'everything', 'format': 'json'}
+        elif arxiv_id:
+            params = {'q': arxiv_id, 'qmode': 'everything', 'format': 'json'}
+        elif title:
+            params = {'q': title, 'qmode': 'title', 'format': 'json'}
+        else:
+            return False  # 如果没有提供标识符，则认为不存在
+
+        try:
+            response = requests.get(url, headers=headers, params=params, proxies=proxies)
+            response.raise_for_status()
+            items = response.json()
+            return len(items) > 0
+        except requests.exceptions.RequestException as e:
+            logger.error(f"检查项目是否存在时出错：{e}")
+            return False
+        
+        
     def insert(self, formatted_arxiv_obj: FormattedArxivObj,collection=["DFGZNVCM"]):
+            # 检查项目是否已存在
+        if self.item_exists(doi=formatted_arxiv_obj.doi, arxiv_id=formatted_arxiv_obj.id, title=formatted_arxiv_obj.title):
+            logger.info(f"项目已存在于 Zotero 中：{formatted_arxiv_obj.title}")
+            return {"status": "exists", "message": "项目已存在"}
+        
         url = f"https://api.zotero.org/users/{self.user_id}/items"
         headers = {
             "Authorization": f"Bearer {self.api_key}",

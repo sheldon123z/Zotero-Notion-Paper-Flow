@@ -52,15 +52,14 @@ def main(dt=None):
         # 日志记录替代print
         logger.info(f"处理文章: {hf_obj['id']} 分类为: {arxiv_obj.category}")
 
-        try:
-            logger.info(f"将文章插入 Notion: {hf_obj['id']}")
-            notion_service.insert(hf_obj, arxiv_obj)  # 插入 notion
-        except Exception as e:
-            logger.error(f"将文章插入 Notion 时出错: {e}")
+        # try:
+        #     logger.info(f"将文章插入 Notion: {hf_obj['id']}")
+        #     notion_service.insert(hf_obj, arxiv_obj)  # 插入 notion
+        # except Exception as e:
+        #     logger.error(f"将文章插入 Notion 时出错: {e}")
         try:
             logger.info(f"将文章插入 Zotero: {hf_obj['id']}")
-
-            # 分类插入 Zotero
+            # 分类插入 Zotero            
             if arxiv_obj.category == 'NLP':
                 zotero_service.insert(arxiv_obj, ["WXBCJ969", "DFGZNVCM"])  # NLP
             elif arxiv_obj.category == 'RL':
@@ -81,12 +80,12 @@ def main(dt=None):
             logger.error(f"将文章插入 Zotero 时出错: {e}")
             continue
         
-        try:
-            wolai_service.insert(arxiv_obj)
-            logger.info(f"正在将文章插入我来: {hf_obj['id']}")
-        except Exception as e:
-            logger.error(f"将文章插入我来时出错: {e}")
-            continue
+        # try:
+        #     wolai_service.insert(arxiv_obj)
+        #     logger.info(f"正在将文章插入我来: {hf_obj['id']}")
+        # except Exception as e:
+        #     logger.error(f"将文章插入我来时出错: {e}")
+        #     continue
         
         ckpt.add(hf_obj['id'])
         ckpt_file.write(hf_obj['id'])
@@ -111,4 +110,4 @@ if __name__ == '__main__':
     #         main(dt)  # 调用 main 函数
     #     except Exception as e:
     #         print(f"Error processing date {dt}: {e}")
-    main()
+    main('2024-09-23')

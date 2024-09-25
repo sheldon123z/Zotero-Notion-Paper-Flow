@@ -256,6 +256,39 @@ class ArxivVisitor:
         written_path, _ = urlretrieve(obj.pdf_url, path)
         logger.info(f"{title} downloaded to {written_path}")
 
+    def search_by_keywords(self, keywords, limit=10, format_result=True) -> Union[List[FormattedArxivObj], List[arxiv.Result]]:
+        data = []
+        # 构建查询字符串
+        # 这个例子在标题和摘要中搜索关键字
+        if isinstance(keywords, list):
+            # 如果关键字是列表，构建一个查询，确保所有关键字都存在
+            query_parts = []
+            for keyword in keywords:
+                keyword = keyword.strip()
+                if keyword:
+                    query_parts.append(f'(ti:"{keyword}" OR abs:"{keyword}")')
+            query = ' AND '.join(query_parts)
+        else:
+            # 如果关键字是字符串，在标题或摘要中搜索该短语
+            keywords = keywords.strip()
+            query = f'(ti:"{keywords}" OR abs:"{keywords}")'
+        
+        logger.info(f"构建的查询：{query}")
+        
+        search = arxiv.Search(
+            query=query,
+            max_results=limit,
+            sort_by=arxiv.SortCriterion.Relevance
+        )
+        search_results = self.client.results(search)
+        for result in search_results:
+            logger.info(f"标题：{result.title}")
+            logger.info(f"作者：{', '.join(author.name for author in result.authors)}")
+            logger.info(f"发布日期：{result.published.strftime('%Y-%m')}")
+            data.append(result)
+            if len(data) >= limit:
+                break
+        return [self._post_process(item) for item in data] if format_result else data
 
 if __name__ == '__main__':
     print(__file__)
