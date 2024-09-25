@@ -27,7 +27,7 @@ class ArxivVisitor:
     def _process_tldr(self, summary, cache_obj, cache_filename):
         logger.info(f"processing tldr for {cache_obj['id']}")
 
-        keys = ('动机', '方法', '结果')
+        keys = ('动机', '方法', '结果', 'remark')
         
         if 'tldr' in cache_obj and all([key in cache_obj['tldr'] and cache_obj['tldr'][key].strip() != '' for key in keys]):
             logger.info(f"processing tldr found cache")
@@ -36,13 +36,19 @@ class ArxivVisitor:
         if 'raw_tldr' in cache_obj and cache_obj['raw_tldr'].strip() != '':
             tldr = json.loads(cache_obj['raw_tldr'])
         else:
-            prmpt = f'''下面这段话（<summary></summary>之间的部分）
-            是一篇论文的摘要，请基于摘要信息总结论文的动机、方法、结果，请使用中文表述，
-            结果请输出三行，分别以“动机“、“方法”、“结果”开头，
+            prmpt = f'''下面这段话（<summary></summary>之间的部分）是一篇论文的摘要。
+            请基于摘要信息总结论文的动机、方法、结果、remark、翻译、short_summary等信息，, 其中remark请你用不超过15个英文字符总结
+            该文章的领域,如果有算法请将算法放到前面，如"LQR/多智能体控制"，其中“翻译”将整个摘要内容使用中文进行翻译，
+            "short_summary"部分则是使用中文根据翻译结果进行不超过50字的主题简介,注意不要使用任何的markdown格式标点符号，也不要写任何的公式。
+            需要特别注意，除了remark部分其他所有地方请使用中文表述，并以 **JSON** 格式输出，
+            格式如下：
             {{
                 "动机": "xxx",
                 "方法": "xxx",
-                "结果": "xxx"
+                "结果": "xxx",
+                "翻译": "xxx",
+                "short_summary": "xxx",
+                "remark": "xxx"
             }}
             如果某一项不存在，请输出空字符串，请认真回答，
             如果回答的好我会给你很多小费：\n<summary>{summary}</summary>'''
@@ -58,6 +64,11 @@ class ArxivVisitor:
             if key not in cache_obj['tldr']:
                 logger.warning(f"{key} not in tldr")
                 cache_obj['tldr'][key] = ''
+                
+        if '翻译' in cache_obj['tldr']:
+            cache_obj['summary_cn'] = cache_obj['tldr']['翻译']
+        if 'short_summary' in cache_obj['tldr']:
+            cache_obj['short_summary'] = cache_obj['tldr']['short_summary']
         json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)
 
     def _process_summary(self, summary, cache_obj, cache_filename):
@@ -70,27 +81,21 @@ class ArxivVisitor:
         cache_obj['summary_cn'] = summary_cn
         json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)
         
-    def _process_short_summary(self, summary, cache_obj, cache_filename):
-        logger.info(f"processing short summary for {cache_obj['id']}")
-        if 'short_summary' in cache_obj:
-            logger.info(f"processing short summary found cache")
-            return
+    # def _process_short_summary(self, summary, cache_obj, cache_filename):
+    #     logger.info(f"processing short summary for {cache_obj['id']}")
+    #     if 'short_summary' in cache_obj:
+    #         logger.info(f"processing short summary found cache")
+    #         return
         
-        # 调用 llm_service.chat，返回的可能是列表或其他格式，确保转换为字符串
-        prompt = f"""这段话是一篇论文的摘要，请你使用中文用进行不超过50字的主题简介,
-                                         注意不要使用任何的markdown格式标点符号，
-                                         也不要写任何的公式：\n {summary} \n"""
-        short_summary = llm_service.chat(prompt=prompt)
+    #     # 调用 llm_service.chat，返回的可能是列表或其他格式，确保转换为字符串
+    #     prompt = f"""这段话是一篇论文的摘要，请你使用中文用进行不超过50字的主题简介,
+    #                                      注意不要使用任何的markdown格式标点符号，
+    #                                      也不要写任何的公式：\n {summary} \n"""
+    #     short_summary = llm_service.chat(prompt=prompt)
         
-        # # 确保 short_summary 是字符串
-        # if isinstance(short_summary, list):
-        #     short_summary = ''.join(short_summary)  # 将列表转换为单个字符串
-        # elif not isinstance(short_summary, str):
-        #     short_summary = str(short_summary)  # 将其他非字符串类型转换为字符串
-        
-        # 将结果保存到缓存对象并写入文件
-        cache_obj['short_summary'] = short_summary
-        json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)
+    #     # 将结果保存到缓存对象并写入文件
+    #     cache_obj['short_summary'] = short_summary
+    #     json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)
 
     def _process_tag_info(self, summary, cache_obj, cache_filename):
         logger.info(f"processing tag info for {cache_obj['id']}")
@@ -120,10 +125,11 @@ class ArxivVisitor:
             prompt = f"""
                         以下是论文摘要内容：\n {summary}\n
 
-                        请参考论文摘要内容，判断该论文的主要研究领域（例如RL、MTS、NLP、多模态、CV、MARL、LLM等）请你尽量使用英文专业名词的简写，
-                        并总结出最多6个高度概括文章主题的标签,并在最后一定加入一个"/unread"标签。
-                        请根据论文摘要灵活确定"主要领域"和"标签"的内容，注意，“主要领域”
-                        只能有一个，并使用以下JSON格式回复：
+                        请参考论文摘要内容，判断该论文的主要研究领域（例如RL、MTS、NLP、多模态、CV、MARL、LLM等）概括的结果
+                        填写在"主要领域"键后，请你尽量使用英文专业名词的简写。
+                        同时根据摘要内容总结出最多10个高度概括文章主题的tags,以list的形式填写在"标签"键后，并在最后一定加入一个"/unread"标签。
+                        请你一定注意，"主要领域" 只能有一个，"标签" 内容的数量则可以有多个，
+                        并使用以下**JSON**格式回复：
                         {{
                         "主要领域": "LLM",
                         "标签": [
@@ -166,14 +172,14 @@ class ArxivVisitor:
 
         cache_filename = os.path.join(self.cache_dir, f"{_id}.json")
         if os.path.exists(cache_filename):
-            logger.info(f'found cache at {cache_filename}, loading ...')
+            logger.info(f'找到缓存 {cache_filename}, 加载中 ...')
             cache_obj = json.load(open(cache_filename))
-            logger.info('cache content')
+            logger.info('缓存内容为：')
             logger.info(json.dumps(cache_obj, ensure_ascii=False, indent=2))
 
         self._process_tldr(summary, cache_obj, cache_filename)
-        self._process_summary(summary, cache_obj, cache_filename)
-        self._process_short_summary(summary,cache_obj, cache_filename)
+        # self._process_summary(summary, cache_obj, cache_filename)
+        # self._process_short_summary(summary,cache_obj, cache_filename)
         self._process_tag_info(summary, cache_obj, cache_filename)
 
         ret = FormattedArxivObj(
@@ -256,29 +262,51 @@ class ArxivVisitor:
         written_path, _ = urlretrieve(obj.pdf_url, path)
         logger.info(f"{title} downloaded to {written_path}")
 
-    def search_by_keywords(self, keywords, limit=10, format_result=True) -> Union[List[FormattedArxivObj], List[arxiv.Result]]:
+    # 通过关键字查询
+
+    def search_by_keywords(self, keywords, categories=None, limit=10, format_result=True) -> Union[List[FormattedArxivObj], List[arxiv.Result]]:
         data = []
+
         # 构建查询字符串
-        # 这个例子在标题和摘要中搜索关键字
-        if isinstance(keywords, list):
-            # 如果关键字是列表，构建一个查询，确保所有关键字都存在
-            query_parts = []
-            for keyword in keywords:
-                keyword = keyword.strip()
-                if keyword:
-                    query_parts.append(f'(ti:"{keyword}" OR abs:"{keyword}")')
-            query = ' AND '.join(query_parts)
-        else:
-            # 如果关键字是字符串，在标题或摘要中搜索该短语
-            keywords = keywords.strip()
-            query = f'(ti:"{keywords}" OR abs:"{keywords}")'
-        
+        query_parts = []
+
+        # 处理关键词
+        if keywords:
+            if isinstance(keywords, list):
+                # 如果关键字是列表，构建一个查询，确保所有关键字都存在
+                keyword_query_parts = []
+                for keyword in keywords:
+                    if isinstance(keyword, list):
+                        # 处理嵌套的关键字列表，使用 OR 连接
+                        sub_parts = [f'(ti:"{kw}" OR abs:"{kw}")' for kw in keyword]
+                        keyword_query_parts.append('(' + ' OR '.join(sub_parts) + ')')
+                    else:
+                        keyword_query_parts.append(f'(ti:"{keyword}" OR abs:"{keyword}")')
+                query_parts.append(' AND '.join(keyword_query_parts))
+            else:
+                # 如果关键字是字符串，在标题或摘要中搜索该短语
+                query_parts.append(f'(ti:"{keywords}" OR abs:"{keywords}")')
+
+        # 处理分类
+        if categories:
+            if isinstance(categories, list):
+                # 如果分类是列表，使用 OR 连接
+                category_query = ' OR '.join([f'cat:{cat}' for cat in categories])
+                query_parts.append('(' + category_query + ')')
+            else:
+                # 如果分类是字符串
+                query_parts.append(f'cat:{categories}')
+
+        # 将所有查询部分组合在一起
+        query = ' AND '.join(query_parts)
+
         logger.info(f"构建的查询：{query}")
-        
+
         search = arxiv.Search(
             query=query,
             max_results=limit,
-            sort_by=arxiv.SortCriterion.Relevance
+            sort_by=arxiv.SortCriterion.SubmittedDate,
+            sort_order=arxiv.SortOrder.Descending
         )
         search_results = self.client.results(search)
         for result in search_results:
@@ -289,6 +317,7 @@ class ArxivVisitor:
             if len(data) >= limit:
                 break
         return [self._post_process(item) for item in data] if format_result else data
+    
 
 if __name__ == '__main__':
     print(__file__)

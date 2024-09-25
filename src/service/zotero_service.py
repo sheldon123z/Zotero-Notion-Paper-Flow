@@ -78,10 +78,11 @@ class ZoteroService:
             return None
     
     # 更新 title 和 url 的方法
-    def update_title_and_url(self, new_title, new_url):
+    def update_title_and_url_and_id(self, new_title, new_url,id):
         logger.info(f"更新标题为: {new_title} 和URL为: {new_url}")
         self.item_data[0]['title'] = new_title
         self.item_data[0]['url'] = new_url
+        self.item_data[0]['archiveID'] = id
 
     # 更新 creators 的方法
     def update_creators(self, new_authors):
@@ -188,10 +189,10 @@ class ZoteroService:
         else:
             logger.info("键 'rights' 不存在于 item_data 中，跳过更新。")
 
-    def update_extra(self, new_extra):
+    def update_extra(self, extra_topic, new_extra):
         if 'extra' in self.item_data[0]:
             logger.info(f"正在更新附加信息为: {new_extra}")
-            self.item_data[0]['extra'] = new_extra
+            self.item_data[0]['extra'] += f"\n{extra_topic}: {new_extra}"
         else:
             logger.info("键 'extra' 不存在于 item_data 中，跳过更新。")
 
@@ -220,8 +221,8 @@ class ZoteroService:
         else:
             logger.info("键 'journalAbbreviation' 不存在于 item_data 中，跳过更新。")
 
-    def update_tldr(self, new_tldr, tldr_keys=('动机', '方法', '结果')):
-        logger.info(f"Updating tldr to: {new_tldr}")
+    def update_tldr(self, new_tldr, tldr_keys=('动机', '方法', '结果','remark')):
+        logger.info(f"Updating tldr to:\n {new_tldr}")
         
         # 检查是否有任何 key 在 new_tldr 中，并且其值不为空
         if any([key in new_tldr and new_tldr[key] != '' for key in tldr_keys]):
@@ -289,7 +290,7 @@ class ZoteroService:
 
         # 使用 formatted_arxiv_obj 更新 item_data 的各个字段
         logger.info("正在将新项目插入 Zotero...")
-        self.update_title_and_url(formatted_arxiv_obj.title, formatted_arxiv_obj.pdf_url)
+        self.update_title_and_url_and_id(formatted_arxiv_obj.title, formatted_arxiv_obj.pdf_url,formatted_arxiv_obj.id)
         self.update_creators(formatted_arxiv_obj.authors)
         self.update_dates(self.create_time.strftime('%Y-%m-%d'), self.create_time.strftime('%Y-%m-%d'))
         self.update_tags(formatted_arxiv_obj.tags,formatted_arxiv_obj.arxiv_categories)
@@ -299,14 +300,15 @@ class ZoteroService:
         self.update_doi(formatted_arxiv_obj.doi)
         self.update_journal_reference(formatted_arxiv_obj.journal_ref)
         self.update_tldr(formatted_arxiv_obj.tldr) # 更新 tldr, 如果存在, 也可以换成其他的字段
+        # self.update_extra("remark: ",formatted_arxiv_obj.short_summary) # 更新简记
         logger.info(f"item_data 准备提交: {self.item_data}")
 
         # 进行 API 请求，捕捉可能的错误
         try:
+            logger.info("在 Zotero 中创建项目中...")
             response = requests.post(url, headers=headers, json=self.item_data, proxies=proxies)
             response.raise_for_status()
             logger.info(response.json())
-            logger.info("在 Zotero 中成功创建项目.")
             return response.json()
         except requests.exceptions.RequestException as e:
             logger.error(f"创建项目失败: {e}")

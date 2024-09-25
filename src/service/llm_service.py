@@ -11,7 +11,7 @@ import random
 import requests
 from requests.exceptions import Timeout, ConnectionError
 from openai import OpenAI
-MAX_RETRIES = 6
+MAX_RETRIES = 3
 
 logger = common_utils.get_logger(__name__)
 def chat(prompt, retry_count=MAX_RETRIES-1, service="deepseek", response_format="text", **kwargs):
@@ -55,7 +55,7 @@ def chat(prompt, retry_count=MAX_RETRIES-1, service="deepseek", response_format=
                 messages=messages,
                 temperature=0.2,
                 response_format={"type": f"{response_format}"} ,
-                timeout=20
+                timeout=30
             )
             if response_format == "json_object":
                 content = json.loads(resp.choices[0].message.content)
@@ -68,22 +68,7 @@ def chat(prompt, retry_count=MAX_RETRIES-1, service="deepseek", response_format=
         except requests.exceptions.ConnectionError as e:
             logger.error(f"连接错误: {e}")
             raise
-    # return do_request()
-    # for attempt in range(retry_count):
-    #     try:
-    #         return do_request()  # 成功时直接返回结果
-    #     except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
-    #         # 使用指数退避算法设置重试间隔，最长10秒
-    #         sleeping_seconds = min((2 ** attempt) * 3 + random.uniform(0, 2), 10)            
-    #         truncated_prompt = (prompt[:50] + '...') if len(prompt) > 50 else prompt
-    #         logger.warning(f"Attempt {attempt + 1}/{retry_count}: {e}, sleeping {sleeping_seconds}s, prompt: {truncated_prompt}")
-    #         time.sleep(sleeping_seconds)  # 等待指定秒数后再重试
-    #     except requests.exceptions.HTTPError as e:
-    #         logger.error(f"HTTP 错误，停止重试: {e}")
-    #         break
-    #     except Exception as e:
-    #         logger.error(f"未处理的异常: {e}, 不再进行重试")
-    #         break
+    
     while retry_count > 0:
         try:
             return do_request()

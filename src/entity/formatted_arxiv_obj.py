@@ -26,3 +26,4 @@ class FormattedArxivObj:
     journal_ref: str
     doi: str
     arxiv_categories: list
+

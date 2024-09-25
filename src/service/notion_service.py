@@ -157,28 +157,25 @@ class NotionService:
         self._properties = {}
         self._blocks = []
 
-    def insert(self, hf_obj, formatted_arxiv_obj: FormattedArxivObj):
-        self.set_database_id(
-            self.db_id
-        ).add_property_title(
-            '标题', formatted_arxiv_obj.title
-        ).add_property_date(
-            '日期', self.create_time.strftime('%Y-%m-%d')
-        ).add_property_rich_text(
-            '首次发表日期', formatted_arxiv_obj.published_dt
-        ).add_property_rich_text(
-            '作者', ', '.join(formatted_arxiv_obj.authors)
-        ).add_property_rich_text(
-            'AI总结',formatted_arxiv_obj.short_summary
-        ).add_property_select(
-            '领域', formatted_arxiv_obj.category
-        ).add_property_url(
-            'PDF链接', formatted_arxiv_obj.pdf_url
-        )._add_media_block(
-            hf_obj['media_type'], hf_obj['media_url']
-        ).add_property_multi_select(
-            '标签', formatted_arxiv_obj.tags
-        )
+    def insert(self, formatted_arxiv_obj: FormattedArxivObj, hf_obj=None,):
+        # 开始设置数据库 ID
+        self.set_database_id(self.db_id)
+
+        # 添加属性
+        self.add_property_title('标题', formatted_arxiv_obj.title)
+        self.add_property_date('日期', self.create_time.strftime('%Y-%m-%d'))
+        self.add_property_rich_text('首次发表日期', formatted_arxiv_obj.published_dt)
+        self.add_property_rich_text('作者', ', '.join(formatted_arxiv_obj.authors))
+        self.add_property_rich_text('AI总结', formatted_arxiv_obj.short_summary)
+        self.add_property_select('领域', formatted_arxiv_obj.category)
+        self.add_property_url('PDF链接', formatted_arxiv_obj.pdf_url)
+
+        # 如果 hf_obj 存在，则添加媒体块
+        if hf_obj:
+            self._add_media_block(hf_obj['media_type'], hf_obj['media_url'])
+
+        # 继续添加属性
+        self.add_property_multi_select('标签', formatted_arxiv_obj.tags)
         tldr_keys = ('动机', '方法', '结果')
         self.add_h1(
             'TL;DR'
