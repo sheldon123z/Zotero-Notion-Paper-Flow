@@ -221,19 +221,33 @@ class ZoteroService:
         else:
             logger.info("键 'journalAbbreviation' 不存在于 item_data 中，跳过更新。")
 
-    def update_tldr(self, new_tldr, tldr_keys=('动机', '方法', '结果','remark')):
-        logger.info(f"Updating tldr to:\n {new_tldr}")
+#     def update_tldr(self, new_tldr, tldr_keys=('动机', '方法', '结果','remark')):
+#         logger.info(f"Updating tldr to:\n {new_tldr}")
         
+#         # 检查是否有任何 key 在 new_tldr 中，并且其值不为空
+#         if any([key in new_tldr and new_tldr[key] != '' for key in tldr_keys]):
+#             for key in tldr_keys:
+#                 if key in new_tldr and new_tldr[key] != '':
+#                     # 将 key 和对应的值追加到 extra 中
+#                     if 'extra' in self.item_data[0]:
+#                         self.item_data[0]['extra'] += f"\n{key}: {new_tldr[key]}"
+#                     else:
+#                         # 如果 'extra' 还不存在，初始化它
+#                         self.item_data[0]['extra'] = f"{key}: {new_tldr[key]}"
+    def update_tldr(self, new_tldr, tldr_keys=('动机', '方法', '结果', 'remark')):
+        logger.info(f"Updating tldr to:\n {new_tldr}")
+
         # 检查是否有任何 key 在 new_tldr 中，并且其值不为空
         if any([key in new_tldr and new_tldr[key] != '' for key in tldr_keys]):
-            for key in tldr_keys:
-                if key in new_tldr and new_tldr[key] != '':
-                    # 将 key 和对应的值追加到 extra 中
-                    if 'extra' in self.item_data[0]:
-                        self.item_data[0]['extra'] += f"\n{key}: {new_tldr[key]}"
-                    else:
-                        # 如果 'extra' 还不存在，初始化它
-                        self.item_data[0]['extra'] = f"{key}: {new_tldr[key]}"
+            # 拼接所有的 key-value 对
+            tldr_content = "\n".join([f"{key}: {new_tldr[key]}" for key in tldr_keys if key in new_tldr and new_tldr[key] != ''])
+
+            # 如果 'extra' 已经存在，拼接新的内容
+            if 'extra' in self.item_data[0]:
+                self.item_data[0]['extra'] = f"\n{tldr_content}"
+            else:
+                # 如果 'extra' 还不存在，初始化它
+                self.item_data[0]['extra'] = tldr_content
     
     # 打印当前 item_data 的方法
     def get_item_data(self):

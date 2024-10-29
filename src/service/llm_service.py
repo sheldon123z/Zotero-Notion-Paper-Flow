@@ -23,13 +23,17 @@ def chat(prompt, retry_count=MAX_RETRIES-1, service="deepseek", response_format=
     # 设置特定服务的参数
     if service == 'kimi':
         api_key = os.environ.get('KIMI_API_KEY', api_key)
-        base_url = "https://api.moonshot.cn/v1"
-        model_name = 'moonshot-v1-8k'
+        base_url = os.environ.get('KIMI_URL',base_url)
+        model_name = os.environ.get('KIMI_MODEL',model_name)
     elif service == 'deepseek':
         api_key = os.environ.get('DEEPSEEK_API_KEY', api_key)
-        base_url = "https://api.deepseek.com/beta" # deepseek 只有这个api可以输出8K
-        model_name = 'deepseek-chat'
-    elif service not in ['kimi', 'deepseek']:
+        base_url = os.environ.get('DEEPSEEK_URL',base_url) # deepseek 只有这个api可以输出8K
+        model_name = os.environ.get('DEEPSEEK_MODEL',model_name)
+    elif service == 'zhipu':
+        api_key = os.environ.get('ZHIPU_API_KEY', api_key)
+        base_url = os.environ.get('ZHIPU_URL',base_url)
+        model_name = os.environ.get('ZHIPU_MODEL',model_name)
+    elif service not in ['kimi', 'deepseek','zhipu']:
         # 自定义服务时，检查必需的参数
         if not api_key:
             raise ValueError("缺少 'api_key'")
@@ -53,7 +57,7 @@ def chat(prompt, retry_count=MAX_RETRIES-1, service="deepseek", response_format=
             resp = client.chat.completions.create(
                 model=model_name,
                 messages=messages,
-                temperature=0.2,
+                temperature=0,
                 response_format={"type": f"{response_format}"} ,
                 timeout=30
             )

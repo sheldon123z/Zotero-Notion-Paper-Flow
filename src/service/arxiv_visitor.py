@@ -188,19 +188,28 @@ class ArxivVisitor:
             authors=[author.name for author in arxiv_result.authors],
             published_dt=arxiv_result.published.strftime('%Y-%m'),
             summary=summary,
-            summary_cn=cache_obj['summary_cn'],
-            short_summary=cache_obj['short_summary'],
+            
+            # 使用 .get() 方法避免 KeyError
+            summary_cn=cache_obj.get('summary_cn', ''),  # 缺少时返回空字符串
+            short_summary=cache_obj.get('short_summary', ''),  # 缺少时返回空字符串
             pdf_url=arxiv_result.pdf_url,
-            tldr=cache_obj['tldr'],
-            raw_tldr=cache_obj['raw_tldr'],
-            category=cache_obj['tag_info']['主要领域'],
-            tags=cache_obj['tag_info']['标签'],
+            
+            tldr=cache_obj.get('tldr', {}),  # 缺少时返回空字典
+            raw_tldr=cache_obj.get('raw_tldr', ''),  # 缺少时返回空字符串
+            
+            # 安全获取 'tag_info' 中的 '主要领域' 和 '标签'
+            category=cache_obj.get('tag_info', {}).get('主要领域', ''),  # 缺少时返回空字符串
+            tags=cache_obj.get('tag_info', {}).get('标签', []),  # 缺少时返回空列表
+            
             arxiv_result=arxiv_result,
-            media_type='' if hf_obj is None else hf_obj['media_type'],
-            media_url='' if hf_obj is None else hf_obj['media_url'],
-            journal_ref = arxiv_result.journal_ref,
-            doi = arxiv_result.doi,
-            arxiv_categories = arxiv_result.categories
+            
+            # 处理 hf_obj 为 None 的情况
+            media_type='' if hf_obj is None else hf_obj.get('media_type', ''),
+            media_url='' if hf_obj is None else hf_obj.get('media_url', ''),
+            
+            journal_ref=arxiv_result.journal_ref,
+            doi=arxiv_result.doi,
+            arxiv_categories=arxiv_result.categories
         )
         logger.info(f'saving cache_obj to {cache_filename}')
         json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)

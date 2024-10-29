@@ -22,21 +22,27 @@ class WolaiService:
 
     def insert(self, formatted_arxiv_obj: FormattedArxivObj, db_id=os.environ['WOLAI_DB_ID']):
         # db加入记录
+        tags = [str(tag) for tag in formatted_arxiv_obj.tags]
+        category = [str(formatted_arxiv_obj.category)]
+
+        print(f"tags{tags}")
+        print(f"category: {category} type: {type(category)}")
         req_body = {
             "rows": [
                 {
-                    "标题": formatted_arxiv_obj.title,
+                    "标题": str(formatted_arxiv_obj.title),
                     "类型": ["论文"],
-                    "领域": formatted_arxiv_obj.category,
-                    "文章标签": [formatted_arxiv_obj.tags],
-                    "阅读标签": ["待读"],
-                    "AI总结": formatted_arxiv_obj.short_summary,
+                    "领域": category,
+                    "文章标签": tags ,
+                    "阅读标签": False,
+                    "AI总结": str(formatted_arxiv_obj.short_summary),
                     "首次发表时间": formatted_arxiv_obj.published_dt,
                     "作者": ", ".join(formatted_arxiv_obj.authors),
                     "PDF链接": formatted_arxiv_obj.pdf_url
                 }
             ]
         }
+        print(f"req_body:{req_body}")
         headers = {'Authorization': self.token}
         url = f"https://openapi.wolai.com/v1/databases/{db_id}/rows"
         logger.debug("create database row request:")

@@ -140,8 +140,8 @@ def main(dt=None, keywords=None, categories=None):
 
     with open(ckpt_filename, 'a') as ckpt_file:
         for hf_obj in tqdm(hf_visitor.paper_list, desc=create_dt):
-            if hf_obj['id'] in ckpt:
-                continue
+            # if hf_obj['id'] in ckpt:
+            #     continue
             arxiv_obj = arxiv_visitor.find_by_id(hf_obj['id'])
 
             # 日志记录替代 print
@@ -164,12 +164,12 @@ def main(dt=None, keywords=None, categories=None):
                 logger.error(f"将文章插入 Notion 时出错: {e}")
 
             # 处理 Wolai
-            # try:
-            #     wolai_service.insert(arxiv_obj)
-            #     logger.info(f"正在将文章插入我来: {hf_obj['id']}")
-            # except Exception as e:
-            #     logger.error(f"将文章插入我来时出错: {e}")
-            #     continue
+            try:
+                wolai_service.insert(arxiv_obj)
+                logger.info(f"正在将文章插入我来: {hf_obj['id']}")
+            except Exception as e:
+                logger.error(f"将文章插入我来时出错: {e}")
+                continue
 
             ckpt.add(hf_obj['id'])
             ckpt_file.write(hf_obj['id'])
@@ -187,7 +187,7 @@ if __name__ == '__main__':
     # 创建命令行参数解析器
     parser = argparse.ArgumentParser(description='ArXiv 论文搜索工具')
     parser.add_argument('--keywords', type=str, nargs='+', help='要搜索的关键字列表，可以使用括号表示嵌套')
-    parser.add_argument('--categories', type=str, nargs='+', help='要搜索的分类列表，例如 cs.EE')
+    parser.add_argument('--categories', type=str, nargs='+', help='要搜索的分类列表，例如 cs.LG')
     parser.add_argument('--date', type=str, help='指定日期，格式为 YYYY-MM-DD')
     args = parser.parse_args()
 
@@ -197,3 +197,14 @@ if __name__ == '__main__':
 
     # 调用 main 函数
     main(dt=dt, keywords=keywords,categories=categories)
+    # from datetime import datetime, timedelta
+
+    # # 获取前天日期
+    # start_date = datetime.now() - timedelta(days=10)
+    
+    # # 生成过去30天的日期，格式为 YYYY-MM-DD
+    # for i in range(30):
+    #     dt = (start_date - timedelta(days=i)).strftime('%Y-%m-%d')
+        
+    #     # 调用 main 函数，保持 keywords 和 categories 不变
+    #     main(dt=dt, keywords=keywords, categories=categories)
