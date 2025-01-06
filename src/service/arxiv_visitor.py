@@ -144,7 +144,7 @@ class ArxivVisitor:
                         }}
                         """
             # 调用大模型
-            tag_info =llm_service.chat(prompt,service="kimi",response_format="json_object",temperature=0.1)
+            tag_info =llm_service.chat(prompt,service="deepseek",response_format="json_object",temperature=0.1)
             # 将结果保存到缓存对象并写入文件
             cache_obj['tag_info_raw'] = json.dumps(tag_info)
             

@@ -115,11 +115,11 @@ def main(dt=None, keywords=None, categories=None):
             except Exception as e:
                 logger.error(f"将文章插入 Notion 时出错: {e}")
 
-            # try:
-            #     wolai_service.insert(arxiv_obj)
-            #     logger.info(f"已将文章插入我来: {arxiv_obj.id}")
-            # except Exception as e:
-            #     logger.error(f"将文章插入我来时出错: {e}")
+            try:
+                wolai_service.insert(arxiv_obj)
+                logger.info(f"已将文章插入我来: {arxiv_obj.id}")
+            except Exception as e:
+                logger.error(f"将文章插入我来时出错: {e}")
             
             # 在成功处理后，将论文 ID 添加到 checkpoint
             arxiv_ckpt.add(arxiv_obj.id)
@@ -183,6 +183,7 @@ def main(dt=None, keywords=None, categories=None):
 
 if __name__ == '__main__':
     import argparse
+    from datetime import datetime, timedelta
 
     # 创建命令行参数解析器
     parser = argparse.ArgumentParser(description='ArXiv 论文搜索工具')
@@ -197,13 +198,15 @@ if __name__ == '__main__':
 
     # 调用 main 函数
     main(dt=dt, keywords=keywords,categories=categories)
-    # from datetime import datetime, timedelta
+    
 
     # # 获取前天日期
-    # start_date = datetime.now() - timedelta(days=10)
-    
+    # start_date = datetime.now() 
+
+    # # 往前追溯period天
+    # period = 7
     # # 生成过去30天的日期，格式为 YYYY-MM-DD
-    # for i in range(30):
+    # for i in range(period):
     #     dt = (start_date - timedelta(days=i)).strftime('%Y-%m-%d')
         
     #     # 调用 main 函数，保持 keywords 和 categories 不变
