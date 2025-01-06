@@ -1,0 +1,56 @@
+                 GNU GENERAL PUBLIC LICENSE
+                    Version 3, 29 June 2007
+
+ Copyright (C) 2025  Xiaodong Zheng
+ This license comes with no warranty.
+
+ 0. Purpose
+
+ The purpose of this License is to ensure your freedom to share and change all versions of a program—to make sure it remains free software for all its users. This General Public License (GPL) applies to all software, which is distributed under this License.
+
+ The GPL grants you the following rights:
+ - Use: You may use the software for any purpose.
+ - Study and Modify: You may study and modify the software, and create derivative works.
+ - Distribute: You may redistribute the software and modified versions of it.
+
+ 1. Scope of the License
+
+ This License allows you to:
+ - Use the software freely.
+ - Study, modify, and redistribute the software, including making derivative works.
+
+ 2. Code Availability
+
+ When you distribute the software, you must make the corresponding source code available, and you must provide a copy of this License.
+
+ 3. Modified and Derivative Works
+
+ If you modify the software and distribute it, you must give the modified version the same License and state the changes you made. You may not impose additional restrictions on the software that would limit others’ rights under this License.
+
+ 4. No Tivoization
+
+ You may not use the software in a way that would restrict users’ freedom to run, modify, and share the software, such as placing restrictions on the software when used on hardware or any other technical measures that restrict these freedoms.
+
+ 5. Patent Grant
+
+ By modifying and redistributing the software, you are granting a patent license to the recipients, ensuring they are not subject to patent claims related to their use of the software.
+
+ 6. No Warranty
+
+ The software is provided “as is,” without any warranty. The copyright holders or anyone else who may distribute the software are not responsible for any defects, damages, or problems that may arise from using the software.
+
+ 7. Termination
+
+ If you violate any of the terms of this License, the License will terminate automatically, and you must stop using and distributing the software.
+
+ 8. Internationalization
+
+ This License is designed to be applicable worldwide. If the License cannot be enforced in some jurisdictions, the copyright holders will provide an alternative license that satisfies the requirements of that jurisdiction.
+
+ 9. License Validity
+
+ If any part of this License is found to be invalid or unenforceable, the rest of the License remains in full effect.
+
+ 10. Additional Terms
+
+ You may add additional terms to this License, but these additional terms must not contradict or diminish the freedoms granted by this License.
