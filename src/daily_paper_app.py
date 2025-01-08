@@ -32,13 +32,24 @@ logger = logging.getLogger(__name__)
 # 这里记录的是 zotero 的分类的 ID，需要根据你的数据库进行修改，
 # 是将主题为 key 值的文章插入到 zotero 的对应分类下
 # value 的分类可以增加或修改，但是 key 的值如果需要修改的话需要在 llm 服务中进行修改
+group_default="YQ7QPRCW"
+personal_default="DFGZNVCM"
 category_map = {
-    'NLP': ["WXBCJ969", "DFGZNVCM"],
-    'RL': ["DXU9QIKA", "DFGZNVCM"],
-    'MARL': ["8DXU5DFC", "DFGZNVCM"],
-    'MTS': ["JSYLDU9Z", "DFGZNVCM"],
-    '多模态': ["H2AHAFZF", "DFGZNVCM"],
-    'CV': ["H8W7XVEC", "DFGZNVCM"]
+    'NLP': ["WXBCJ969", personal_default], # DFGZNVCM 是huggingface文件夹
+    'RL': ["DXU9QIKA", personal_default],# 
+    'MARL': ["8DXU5DFC", personal_default], #
+    'MTS': ["JSYLDU9Z", personal_default], 
+    '多模态': ["H2AHAFZF", personal_default],
+    'CV': ["H8W7XVEC", personal_default]
+}
+
+category_map_group = {
+    'NLP': ["WXBCJ969", group_default], # DFGZNVCM 是huggingface文件夹
+    'RL': ["DXU9QIKA", group_default],# 
+    'MARL': ["8DXU5DFC", group_default], #
+    'MTS': ["JSYLDU9Z", group_default], 
+    '多模态': ["H2AHAFZF", group_default],
+    'CV': ["H8W7XVEC", group_default]
 }
 
 def main(dt=None, keywords=None, categories=None):
@@ -101,7 +112,7 @@ def main(dt=None, keywords=None, categories=None):
             # 插入 Zotero
             try:
                 logger.info(f"将文章插入 Zotero: {arxiv_obj.id}")
-                params = category_map.get(arxiv_obj.category, ["9DDH4UIZ"])  # 使用一个默认分类存放 arXiv 上的文章
+                params = category_map.get(arxiv_obj.category, [personal_default])  # 使用一个默认分类存放 arXiv 上的文章
                 zotero_service.insert(arxiv_obj, params)
                 logger.info(f"已将文章插入 Zotero: {arxiv_obj.id}")
             except Exception as e:
@@ -146,16 +157,26 @@ def main(dt=None, keywords=None, categories=None):
 
             # 日志记录替代 print
             logger.info(f"处理文章: {hf_obj['id']} 分类为: {arxiv_obj.category}")
+            
             # 处理 Zotero
             try:
-                logger.info(f"将文章插入 Zotero: {hf_obj['id']}")
-                params = category_map.get(arxiv_obj.category, ["DFGZNVCM"])
-                zotero_service.insert(arxiv_obj, params)
-                logger.info(f"已将文章插入 Zotero: {hf_obj['id']}")
+                logger.info(f"将文章: {hf_obj['id']}插入 Zotero 个人库")
+                params = category_map.get(arxiv_obj.category, [personal_default])
+                zotero_service.insert(arxiv_obj, params,library_type="user")
+                logger.info(f"已将文章: {hf_obj['id']} 插入 Zotero")
             except Exception as e:
-                logger.error(f"将文章插入 Zotero 时出错: {e}")
+                logger.error(f"将文章 : {hf_obj['id']} 插入 Zotero 个人库时出错: {e}")
                 continue
 
+            try:
+                logger.info(f"将文章: {hf_obj['id']}插入 Zotero 群组库")
+                params = category_map_group.get(arxiv_obj.category, [group_default])
+                zotero_service.insert(arxiv_obj, params,library_type="group")
+                logger.info(f"已将文章: {hf_obj['id']} 插入 Zotero 群组.")
+            except Exception as e:
+                logger.error(f"将文章: {hf_obj['id']} 插入 Zotero 群组库时出错: {e}")
+                continue
+            
             # 处理 Notion
             try:
                 logger.info(f"将文章插入 Notion: {hf_obj['id']}")

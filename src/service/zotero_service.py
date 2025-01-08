@@ -12,10 +12,22 @@ from common_utils.json_templates import *
 from entity.formatted_arxiv_obj import FormattedArxivObj
 from datetime import datetime
 logger = common_utils.get_logger(__name__)
+
+class ZoteroItemExistsError(Exception):
+    """当插入到Zotero时发现项目已存在时抛出。"""
+    pass
+
 class ZoteroService:
-    def __init__(self, create_time, item_type="preprint", api_key=os.environ.get('ZOTERO_API_KEY'), user_id=os.environ.get('ZOTERO_USER_ID'), use_proxy=True):
+    def __init__(self, 
+                 create_time, 
+                 item_type="preprint", 
+                 api_key=os.environ.get('ZOTERO_API_KEY'), 
+                 user_id=os.environ.get('ZOTERO_USER_ID'), 
+                 group_id=os.environ.get('ZOTERO_GROUP_ID'),
+                 use_proxy=True):
         self.api_key = api_key
         self.user_id = user_id
+        self.group_id = group_id
         self.create_time = create_time
         self.use_proxy = use_proxy
         self.item_data= []
@@ -74,7 +86,7 @@ class ZoteroService:
                 data = json.load(json_file)
                 return data
         else:
-            print(f"文件 {target_filename} 不存在于文件夹 {directory} 中。")
+            logger.info(f"文件 {target_filename} 不存在于文件夹 {directory} 中。")
             return None
     
     # 更新 title 和 url 的方法
@@ -254,44 +266,107 @@ class ZoteroService:
         logger.info(f"Current item_data: {self.item_data[0]}")
         return self.item_data[0]
     
-    def item_exists(self, doi=None, arxiv_id=None, title=None):
-        url = f"https://api.zotero.org/users/{self.user_id}/items"
+    def item_exists(self, doi=None, arxiv_id=None, title=None,library_type='user'):
+        """
+        检查文献是否已存在于Zotero库中。返回一个字典，包含以下字段：
+          - "exists": bool, 表示文献是否已存在
+          - "count": int, 符合条件的文献数量
+          - "query_type": str, 具体使用的查询方式(doi, arxiv_id, title或none)
+          - "message": str, 可能的补充信息或者错误原因
+          - "items": list, 如果返回成功，可以把检索到的条目列表放在这里(可选)
+        """
+        # 根据不同的库构造URL
+        if library_type=="group":
+            url= f"https://api.zotero.org/groups/{self.group_id}/items"
+        else:
+            url = f"https://api.zotero.org/users/{self.user_id}/items"
+    
         headers = {
             "Authorization": f"Bearer {self.api_key}",
         }
-
         proxies = {
             'http': 'http://127.0.0.1:7890',
             'https': 'http://127.0.0.1:7890',
         } if self.use_proxy else None
-
-        # 构建查询参数
+    
+        # 确定查询参数和类型
+        query_type = None
         if doi:
             params = {'q': doi, 'qmode': 'everything', 'format': 'json'}
+            query_type = 'doi'
         elif arxiv_id:
             params = {'q': arxiv_id, 'qmode': 'everything', 'format': 'json'}
+            query_type = 'arxiv_id'
         elif title:
             params = {'q': title, 'qmode': 'title', 'format': 'json'}
+            query_type = 'title'
         else:
-            return False  # 如果没有提供标识符，则认为不存在
-
+            return {
+                "exists": False,
+                "count": 0,
+                "query_type": "none",
+                "message": "没有提供可用的标识符查询。",
+                "items": []
+            }
+    
         try:
             response = requests.get(url, headers=headers, params=params, proxies=proxies)
             response.raise_for_status()
-            items = response.json()
-            return len(items) > 0
+            items = response.json()  # Zotero 的返回是一个列表(符合条件的 items)
+            count = len(items)
+            if count > 0:
+                return {
+                    "exists": True,
+                    "count": count,
+                    "query_type": query_type,
+                    "message": f"检索到 {count} 个条目。",
+                    "items": items
+                }
+            else:
+                return {
+                    "exists": False,
+                    "count": 0,
+                    "query_type": query_type,
+                    "message": "未检索到对应条目。",
+                    "items": []
+                }
         except requests.exceptions.RequestException as e:
             logger.error(f"检查项目是否存在时出错：{e}")
-            return False
+            return {
+                "exists": False,
+                "count": 0,
+                "query_type": query_type if query_type else "unknown",
+                "message": f"网络请求或Zotero接口异常: {e}",
+                "items": []
+            }
         
-        
-    def insert(self, formatted_arxiv_obj: FormattedArxivObj,collection=["DFGZNVCM"]):
+    def insert(self, formatted_arxiv_obj: FormattedArxivObj,collection=["DFGZNVCM"],library_type="user"):
             # 检查项目是否已存在
-        if self.item_exists(doi=formatted_arxiv_obj.doi, arxiv_id=formatted_arxiv_obj.id, title=formatted_arxiv_obj.title):
-            logger.info(f"项目已存在于 Zotero 中：{formatted_arxiv_obj.title}")
-            return {"status": "exists", "message": "项目已存在"}
+        # if self.item_exists(doi=formatted_arxiv_obj.doi, arxiv_id=formatted_arxiv_obj.id, title=formatted_arxiv_obj.title):
+        #     logger.info(f"项目已存在于 Zotero 中：{formatted_arxiv_obj.title}")
+        #     return {"status": "exists", "message": "项目已存在"}
+        check_result = self.item_exists(
+                                    doi=formatted_arxiv_obj.doi,
+                                    arxiv_id=formatted_arxiv_obj.id,
+                                    title=formatted_arxiv_obj.title,
+                                    library_type=library_type
+                                    )
+    
+        # 如果返回值中 "exists" 为 True，则说明项目已存在
+        if check_result["exists"]:
+            logger.info(f"项目已存在于 Zotero 中：{formatted_arxiv_obj.title}；"
+                        f"检索结果：{check_result['message']}")
+            # 使用自定义异常，或直接 ValueError
+            raise ZoteroItemExistsError(
+                f"论文已经存在: {formatted_arxiv_obj.title}. "
+                f"检索结果: {check_result['message']}"
+            )
         
-        url = f"https://api.zotero.org/users/{self.user_id}/items"
+        if library_type=="group":
+            url= f"https://api.zotero.org/groups/{self.group_id}/items"
+        else:
+            url = f"https://api.zotero.org/users/{self.user_id}/items"
+            
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -312,7 +387,7 @@ class ZoteroService:
         self.update_abstract(formatted_arxiv_obj.summary_cn) # 更新中文摘要
         self.update_collections(collection)
         self.update_doi(formatted_arxiv_obj.doi)
-        self.update_journal_reference(formatted_arxiv_obj.journal_ref)
+        # self.update_journal_reference(formatted_arxiv_obj.journal_ref)
         self.update_tldr(formatted_arxiv_obj.tldr) # 更新 tldr, 如果存在, 也可以换成其他的字段
         # self.update_extra("remark: ",formatted_arxiv_obj.short_summary) # 更新简记
         logger.info(f"item_data 准备提交: {self.item_data}")
