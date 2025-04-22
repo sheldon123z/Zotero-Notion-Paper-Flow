@@ -1,0 +1,61 @@
+{
+    "keywords": [
+        "reinforcement learning",
+        [
+            "power system",
+            "energy"
+        ]
+    ],
+    "categories": [
+        "cs.LG",
+        "cs.AI",
+        "eess.SY"
+    ],
+    "date": null,
+    "proxy": "http://127.0.0.1:7890",
+    "services": {
+        "notion": true,
+        "zotero": false,
+        "wolai": true
+    },
+    "search_limit": 20,
+    "retries": 3,
+    "category_map": {
+        "NLP": [
+            "WXBCJ969",
+            "DFGZNVCM"
+        ],
+        "RL": [
+            "DXU9QIKA",
+            "DFGZNVCM"
+        ],
+        "MARL": [
+            "8DXU5DFC",
+            "DFGZNVCM"
+        ],
+        "MTS": [
+            "JSYLDU9Z",
+            "DFGZNVCM"
+        ],
+        "多模态": [
+            "H2AHAFZF",
+            "DFGZNVCM"
+        ],
+        "CV": [
+            "H8W7XVEC",
+            "DFGZNVCM"
+        ],
+        "ML": [
+            "TFK8IUCH",
+            "DFGZNVCM"
+        ],
+        "LLM": [
+            "WXBCJ969",
+            "DFGZNVCM"
+        ],
+        "DL": [
+            "TFK8IUCH",
+            "DFGZNVCM"
+        ]
+    }
+}

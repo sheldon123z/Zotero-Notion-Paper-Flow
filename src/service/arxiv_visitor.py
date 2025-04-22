@@ -1,5 +1,6 @@
 """
- Modified by Xiaodong Zheng on 2024/9/20
+Modified by Xiaodong Zheng on 2025/4/22
+增强ArXiv查询功能和错误处理
 """
 import json
 import os
@@ -7,6 +8,7 @@ import pickle
 import re
 import copy
 import sys
+import time
 from typing import Union, List
 from urllib.request import urlretrieve
 
@@ -23,142 +25,193 @@ class ArxivVisitor:
         self.cache_dir = os.path.join(output_dir, 'cache')
         os.makedirs(self.cache_dir, exist_ok=True)
         self.client = arxiv.Client(page_size=page_size)
+        self.max_retries = 3
+        self.retry_wait = 2
 
     def _process_tldr(self, summary, cache_obj, cache_filename):
-        logger.info(f"processing tldr for {cache_obj['id']}")
+        logger.info(f"处理论文TLDR: {cache_obj['id']}")
 
         keys = ('动机', '方法', '结果', 'remark')
         
         if 'tldr' in cache_obj and all([key in cache_obj['tldr'] and cache_obj['tldr'][key].strip() != '' for key in keys]):
-            logger.info(f"processing tldr found cache")
+            logger.info(f"从缓存找到TLDR")
             return
         # 检查是否有缓存
         if 'raw_tldr' in cache_obj and cache_obj['raw_tldr'].strip() != '':
-            tldr = json.loads(cache_obj['raw_tldr'])
+            try:
+                tldr = json.loads(cache_obj['raw_tldr'])
+            except json.JSONDecodeError:
+                logger.warning(f"解析raw_tldr JSON失败，重新处理")
+                tldr = self._generate_tldr(summary)
+                cache_obj['raw_tldr'] = json.dumps(tldr)
         else:
-            prmpt = f'''下面这段话（<summary></summary>之间的部分）是一篇论文的摘要。
-            请基于摘要信息总结论文的动机、方法、结果、remark、翻译、short_summary等信息，, 其中remark请你用不超过15个英文字符总结
-            该文章的领域,如果有算法请将算法放到前面，如"LQR/多智能体控制"，其中“翻译”将整个摘要内容使用中文进行翻译，
-            "short_summary"部分则是使用中文根据翻译结果进行不超过50字的主题简介,注意不要使用任何的markdown格式标点符号，也不要写任何的公式。
-            需要特别注意，除了remark部分其他所有地方请使用中文表述，并以 **JSON** 格式输出，
-            格式如下：
-            {{
-                "动机": "xxx",
-                "方法": "xxx",
-                "结果": "xxx",
-                "翻译": "xxx",
-                "short_summary": "xxx",
-                "remark": "xxx"
-            }}
-            如果某一项不存在，请输出空字符串，请认真回答，
-            如果回答的好我会给你很多小费：\n<summary>{summary}</summary>'''
-            tldr = llm_service.chat(
-                prompt=prmpt,
-                response_format='json_object' 
-                )
+            tldr = self._generate_tldr(summary)
             cache_obj['raw_tldr'] = json.dumps(tldr) # 保存成字符串格式
+            
         if 'tldr' not in cache_obj:
             cache_obj['tldr'] = {}
         cache_obj['tldr'].update(tldr)
+        
         for key in keys:
             if key not in cache_obj['tldr']:
-                logger.warning(f"{key} not in tldr")
+                logger.warning(f"{key} 不在tldr中")
                 cache_obj['tldr'][key] = ''
                 
         if '翻译' in cache_obj['tldr']:
             cache_obj['summary_cn'] = cache_obj['tldr']['翻译']
         if 'short_summary' in cache_obj['tldr']:
             cache_obj['short_summary'] = cache_obj['tldr']['short_summary']
-        json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)
+            
+        try:
+            json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.error(f"保存缓存文件时出错: {e}")
+            # 创建备份路径
+            backup_filename = cache_filename + ".backup"
+            logger.info(f"尝试保存到备份文件: {backup_filename}")
+            json.dump(cache_obj, open(backup_filename, 'w'), ensure_ascii=False, indent=2)
 
-    def _process_summary(self, summary, cache_obj, cache_filename):
-        logger.info(f"processing summary for {cache_obj['id']}")
-        if 'summary_cn' in cache_obj:
-            logger.info(f"processing summary found cache")
-            return
-        prompt = f"""这段话是一篇论文的摘要，请你使用中文进行翻译：\n{summary}"""
-        summary_cn = llm_service.chat(prompt=prompt)
-        cache_obj['summary_cn'] = summary_cn
-        json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)
+    def _generate_tldr(self, summary):
+        """使用LLM生成摘要的TLDR"""
+        logger.info("生成论文TLDR")
         
-    # def _process_short_summary(self, summary, cache_obj, cache_filename):
-    #     logger.info(f"processing short summary for {cache_obj['id']}")
-    #     if 'short_summary' in cache_obj:
-    #         logger.info(f"processing short summary found cache")
-    #         return
+        prmpt = f'''下面这段话（<summary></summary>之间的部分）是一篇论文的摘要。
+        请基于摘要信息总结论文的动机、方法、结果、remark、翻译、short_summary等信息，, 其中remark请你用不超过15个英文字符总结
+        该文章的领域,如果有算法请将算法放到前面，如"LLM/强化学习"，或"RL/多智能体"等，其中"翻译"将整个摘要内容使用中文进行翻译，
+        "short_summary"部分则是使用中文根据翻译结果进行不超过50字的主题简介,注意不要使用任何的markdown格式标点符号，也不要写任何的公式。
+        需要特别注意，除了remark部分其他所有地方请使用中文表述，并以 **JSON** 格式输出，
+        格式如下：
+        {{
+            "动机": "xxx",
+            "方法": "xxx",
+            "结果": "xxx",
+            "翻译": "xxx",
+            "short_summary": "xxx",
+            "remark": "xxx"
+        }}
+        如果某一项不存在，请输出空字符串，请认真回答，
+        如果回答的好我会给你很多小费：\n<summary>{summary}</summary>'''
         
-    #     # 调用 llm_service.chat，返回的可能是列表或其他格式，确保转换为字符串
-    #     prompt = f"""这段话是一篇论文的摘要，请你使用中文用进行不超过50字的主题简介,
-    #                                      注意不要使用任何的markdown格式标点符号，
-    #                                      也不要写任何的公式：\n {summary} \n"""
-    #     short_summary = llm_service.chat(prompt=prompt)
-        
-    #     # 将结果保存到缓存对象并写入文件
-    #     cache_obj['short_summary'] = short_summary
-    #     json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)
+        # 添加重试逻辑
+        for attempt in range(self.max_retries):
+            try:
+                tldr = llm_service.chat(
+                    prompt=prmpt,
+                    response_format='json_object' 
+                )
+                return tldr
+            except Exception as e:
+                logger.error(f"LLM调用出错 (尝试 {attempt+1}/{self.max_retries}): {e}")
+                if attempt < self.max_retries - 1:
+                    logger.info(f"等待 {self.retry_wait} 秒后重试...")
+                    time.sleep(self.retry_wait)
+                    self.retry_wait *= 2  # 指数退避
+                else:
+                    logger.error("达到最大重试次数，返回空的TLDR")
+                    return {
+                        "动机": "",
+                        "方法": "",
+                        "结果": "",
+                        "翻译": "",
+                        "short_summary": "",
+                        "remark": ""
+                    }
 
     def _process_tag_info(self, summary, cache_obj, cache_filename):
-        logger.info(f"processing tag info for {cache_obj['id']}")
+        logger.info(f"处理论文标签: {cache_obj['id']}")
 
         keys = ('主要领域', '标签')
         if 'tag_info' in cache_obj and all([key in cache_obj['tag_info'] for key in keys]):
-            logger.info(f"processing tags info found cache")
+            logger.info(f"从缓存找到标签信息")
             return
-        # ```json
-        # {
-        #   "主要领域": "NLP",
-        #   "标签": [
-        #     "instruction-tuning",
-        #     "language models",
-        #     "training data selection",
-        #     "learning percentage",
-        #     "data hardness",
-        #     "model sizes",
-        #     "OPT",
-        #     "Llama-2"
-        #   ]
-        # }
-        # ```
+            
+        # 尝试加载或生成标签信息
         if 'tag_info_raw' in cache_obj and cache_obj['tag_info_raw'].strip() != '':
-            tag_info = cache_obj['tag_info_raw']
+            try:
+                tag_info = json.loads(cache_obj['tag_info_raw'])
+            except json.JSONDecodeError:
+                logger.warning(f"解析tag_info_raw JSON失败，重新处理")
+                tag_info = self._generate_tag_info(summary)
+                cache_obj['tag_info_raw'] = json.dumps(tag_info)
         else:
-            prompt = f"""
-                        以下是论文摘要内容：\n {summary}\n
-
-                        请参考论文摘要内容，判断该论文的主要研究领域（例如RL、MTS、NLP、多模态、CV、MARL、LLM等）概括的结果
-                        填写在"主要领域"键后，请你尽量使用英文专业名词的简写。
-                        同时根据摘要内容总结出最多10个高度概括文章主题的tags,以list的形式填写在"标签"键后，并在最后一定加入一个"/unread"标签。
-                        请你一定注意，"主要领域" 只能有一个，"标签" 内容的数量则可以有多个，
-                        并使用以下**JSON**格式回复：
-                        {{
-                        "主要领域": "LLM",
-                        "标签": [
-                            "instruction-tuning",
-                            "language models",
-                            "training data selection",
-                            "learning percentage",
-                            "data hardness",
-                            "Reinforcement Learning",
-                            "/unread",
-                        ]
-                        }}
-                        """
-            # 调用大模型
-            tag_info =llm_service.chat(prompt,service="deepseek",response_format="json_object",temperature=0.1)
-            # 将结果保存到缓存对象并写入文件
+            tag_info = self._generate_tag_info(summary)
             cache_obj['tag_info_raw'] = json.dumps(tag_info)
             
         if 'tag_info' not in cache_obj:
             cache_obj['tag_info'] = {}
 
-        print(f"taginfo is : ############# {type(tag_info)}")
-        #更新cache_obj['tag_info']
-        cache_obj['tag_info'].update(tag_info)
-        # print(f"taginfo is : ############# {cache_obj['tag_info']}")
+        # 确保tag_info是字典类型
+        if isinstance(tag_info, dict):
+            cache_obj['tag_info'].update(tag_info)
+            
+            # 确保标签列表包含/unread
+            if '标签' in cache_obj['tag_info'] and isinstance(cache_obj['tag_info']['标签'], list):
+                if "/unread" not in cache_obj['tag_info']['标签']:
+                    cache_obj['tag_info']['标签'].append("/unread")
+        else:
+            logger.error(f"tag_info不是字典类型: {type(tag_info)}")
+            cache_obj['tag_info'] = {
+                '主要领域': 'RL' if 'reinforcement' in summary.lower() else 'NLP', 
+                '标签': ['/unread']
+            }
 
-        json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)
+        try:
+            json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.error(f"保存缓存文件时出错: {e}")
+            backup_filename = cache_filename + ".backup"
+            logger.info(f"尝试保存到备份文件: {backup_filename}")
+            json.dump(cache_obj, open(backup_filename, 'w'), ensure_ascii=False, indent=2)
+
+    def _generate_tag_info(self, summary):
+        """使用LLM生成标签信息"""
+        logger.info(f"生成论文标签")
+        
+        prompt = f"""
+                    以下是论文摘要内容：\n {summary}\n
+
+                    请参考论文摘要内容，判断该论文的主要研究领域（例如RL、MTS、NLP、多模态、CV、MARL、LLM等）概括的结果
+                    填写在"主要领域"键后，请你尽量使用英文专业名词的简写。
+                    同时根据摘要内容总结出最多10个高度概括文章主题的tags,以list的形式填写在"标签"键后，并在最后一定加入一个"/unread"标签。
+                    请你一定注意，"主要领域" 只能有一个，"标签" 内容的数量则可以有多个，
+                    并使用以下**JSON**格式回复：
+                    {{
+                    "主要领域": "RL",
+                    "标签": [
+                        "reinforcement-learning",
+                        "power-system",
+                        "optimization",
+                        "energy",
+                        "/unread"
+                    ]
+                    }}
+                    """
+                    
+        # 添加重试逻辑
+        for attempt in range(self.max_retries):
+            try:
+                tag_info = llm_service.chat(
+                    prompt=prompt,
+                    service="deepseek",
+                    response_format="json_object",
+                    temperature=0.1
+                )
+                return tag_info
+            except Exception as e:
+                logger.error(f"LLM调用出错 (尝试 {attempt+1}/{self.max_retries}): {e}")
+                if attempt < self.max_retries - 1:
+                    logger.info(f"等待 {self.retry_wait} 秒后重试...")
+                    time.sleep(self.retry_wait)
+                    self.retry_wait *= 2  # 指数退避
+                else:
+                    logger.error("达到最大重试次数，返回默认标签")
+                    return {
+                        "主要领域": "RL" if "reinforcement" in summary.lower() else "NLP",
+                        "标签": ["research", "/unread"]
+                    }
 
     def _post_process(self, arxiv_result, hf_obj=None):
+        """对ArXiv结果进行后处理，生成摘要、标签等信息"""
         summary = arxiv_result.summary.replace('\n', ' ').replace('  ', ' ')
         _id = arxiv_result.entry_id.split('/')[-1]
         cache_obj = {
@@ -172,16 +225,20 @@ class ArxivVisitor:
 
         cache_filename = os.path.join(self.cache_dir, f"{_id}.json")
         if os.path.exists(cache_filename):
-            logger.info(f'找到缓存 {cache_filename}, 加载中 ...')
-            cache_obj = json.load(open(cache_filename))
-            logger.info('缓存内容为：')
-            logger.info(json.dumps(cache_obj, ensure_ascii=False, indent=2))
+            logger.info(f'找到缓存文件 {cache_filename}, 正在加载...')
+            try:
+                with open(cache_filename, 'r', encoding='utf-8') as f:
+                    cache_obj = json.load(f)
+                logger.info('缓存内容加载成功')
+            except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                logger.error(f"读取缓存文件出错: {e}")
+                logger.info("使用新的缓存对象")
 
+        # 处理TLDR和标签
         self._process_tldr(summary, cache_obj, cache_filename)
-        # self._process_summary(summary, cache_obj, cache_filename)
-        # self._process_short_summary(summary,cache_obj, cache_filename)
         self._process_tag_info(summary, cache_obj, cache_filename)
 
+        # 创建格式化对象
         ret = FormattedArxivObj(
             id=_id,
             title=arxiv_result.title,
@@ -190,16 +247,16 @@ class ArxivVisitor:
             summary=summary,
             
             # 使用 .get() 方法避免 KeyError
-            summary_cn=cache_obj.get('summary_cn', ''),  # 缺少时返回空字符串
-            short_summary=cache_obj.get('short_summary', ''),  # 缺少时返回空字符串
+            summary_cn=cache_obj.get('summary_cn', ''),
+            short_summary=cache_obj.get('short_summary', ''),
             pdf_url=arxiv_result.pdf_url,
             
-            tldr=cache_obj.get('tldr', {}),  # 缺少时返回空字典
-            raw_tldr=cache_obj.get('raw_tldr', ''),  # 缺少时返回空字符串
+            tldr=cache_obj.get('tldr', {}),
+            raw_tldr=cache_obj.get('raw_tldr', ''),
             
             # 安全获取 'tag_info' 中的 '主要领域' 和 '标签'
-            category=cache_obj.get('tag_info', {}).get('主要领域', ''),  # 缺少时返回空字符串
-            tags=cache_obj.get('tag_info', {}).get('标签', []),  # 缺少时返回空列表
+            category=cache_obj.get('tag_info', {}).get('主要领域', ''),
+            tags=cache_obj.get('tag_info', {}).get('标签', []),
             
             arxiv_result=arxiv_result,
             
@@ -207,30 +264,87 @@ class ArxivVisitor:
             media_type='' if hf_obj is None else hf_obj.get('media_type', ''),
             media_url='' if hf_obj is None else hf_obj.get('media_url', ''),
             
-            journal_ref=arxiv_result.journal_ref,
-            doi=arxiv_result.doi,
-            arxiv_categories=arxiv_result.categories
+            journal_ref=arxiv_result.journal_ref if hasattr(arxiv_result, 'journal_ref') else None,
+            doi=arxiv_result.doi if hasattr(arxiv_result, 'doi') else None,
+            arxiv_categories=arxiv_result.categories if hasattr(arxiv_result, 'categories') else []
         )
-        logger.info(f'saving cache_obj to {cache_filename}')
-        json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)
+        
+        logger.info(f'保存缓存到 {cache_filename}')
+        try:
+            json.dump(cache_obj, open(cache_filename, 'w'), ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.error(f"保存缓存文件时出错: {e}")
+            backup_filename = cache_filename + ".backup"
+            logger.info(f"尝试保存到备份文件: {backup_filename}")
+            json.dump(cache_obj, open(backup_filename, 'w'), ensure_ascii=False, indent=2)
+            
         return ret
 
-    def find_by_hf_obj(self, hf_obj):
-        return self.find_by_id(hf_obj['id'], hf_obj)
-
     def find_by_id(self, id_or_idlist, hf_obj=None, format_result=True) -> Union[FormattedArxivObj, arxiv.Result]:
+        """通过ID查找论文"""
         cache_filename = os.path.join(self.cache_dir, f'{id_or_idlist}.pkl')
+        
+        # 尝试从缓存加载
         if os.path.exists(cache_filename):
-            logger.info(f"find_by_id cache hit at {cache_filename}")
-            result = pickle.load(open(cache_filename, 'rb'))
+            logger.info(f"缓存命中: {cache_filename}")
+            try:
+                with open(cache_filename, 'rb') as f:
+                    result = pickle.load(f)
+            except Exception as e:
+                logger.error(f"读取缓存出错: {e}，重新获取数据")
+                result = self._fetch_arxiv_result(id_or_idlist)
         else:
-            result = next(self.client.results(arxiv.Search(id_list=id_or_idlist if isinstance(id_or_idlist, list) else [id_or_idlist])))
-        # result = next(self.client.results(arxiv.Search(id_list=id_or_idlist if isinstance(id_or_idlist, list) else [id_or_idlist])))
-        pickle.dump(result, open(cache_filename, 'wb'))
-        logger.info(f"Title: {result.title}")
-        logger.info(f"Authors: {', '.join(author.name for author in result.authors)}")
-        logger.info(f"Publish Date: {result.published.strftime('%Y-%m')}")
+            result = self._fetch_arxiv_result(id_or_idlist)
+            
+        # 保存到缓存
+        try:
+            with open(cache_filename, 'wb') as f:
+                pickle.dump(result, f)
+        except Exception as e:
+            logger.error(f"保存缓存文件时出错: {e}")
+            
+        logger.info(f"标题: {result.title}")
+        logger.info(f"作者: {', '.join(author.name for author in result.authors)}")
+        logger.info(f"发布日期: {result.published.strftime('%Y-%m')}")
+        
         return self._post_process(result, hf_obj) if format_result else result
+        
+    def _fetch_arxiv_result(self, id_or_idlist):
+        """从ArXiv API获取论文数据，包含重试机制"""
+        logger.info(f"从ArXiv获取论文: {id_or_idlist}")
+        
+        # 准备ID列表
+        if isinstance(id_or_idlist, list):
+            id_list = id_or_idlist
+        else:
+            id_list = [id_or_idlist]
+            
+        # 添加重试逻辑
+        retry_count = 0
+        max_retries = self.max_retries
+        retry_wait = self.retry_wait
+        
+        while retry_count < max_retries:
+            try:
+                search = arxiv.Search(id_list=id_list)
+                results = list(self.client.results(search))
+                
+                if not results:
+                    raise Exception(f"ArXiv没有返回结果: {id_list}")
+                    
+                return results[0]  # 返回第一个结果
+                
+            except Exception as e:
+                retry_count += 1
+                logger.warning(f"ArXiv API请求失败 (尝试 {retry_count}/{max_retries}): {e}")
+                
+                if retry_count < max_retries:
+                    logger.info(f"等待 {retry_wait} 秒后重试...")
+                    time.sleep(retry_wait)
+                    retry_wait *= 2  # 指数退避
+                else:
+                    logger.error(f"达到最大重试次数，抛出异常")
+                    raise
 
     def smart_find(self, title_or_id, format_result=False):
         """
@@ -240,40 +354,88 @@ class ArxivVisitor:
         :return:
         """
         if re.match('\d{4}.*', title_or_id) is not None:
-            logger.info('using find_by_id function')
+            logger.info('使用find_by_id函数')
             return self.find_by_id(title_or_id, format_result=format_result)
-        logger.info('using search_by_title function')
+        logger.info('使用search_by_title函数')
         return self.search_by_title(title_or_id, format_result=format_result)
 
     def search_by_title(self, title, limit=10, format_result=True) -> Union[List[FormattedArxivObj], List[arxiv.Result]]:
+        """通过标题搜索论文"""
         data = []
-        ret = {}
-        search = arxiv.Search(query=f'ti:"{title}"')
-        search_results = self.client.results(search)
-        for result in search_results:
-            logger.info(f"Title: {result.title}")
-            logger.info(f"Authors: {', '.join(author.name for author in result.authors)}")
-            logger.info(f"Publish Date: {result.published.strftime('%Y-%m')}")
-            data.append(result)
-            if len(data) >= limit:
-                break
+        
+        logger.info(f"通过标题搜索论文: '{title}'")
+        
+        # 添加重试逻辑
+        retry_count = 0
+        max_retries = self.max_retries
+        retry_wait = self.retry_wait
+        
+        while retry_count < max_retries:
+            try:
+                search = arxiv.Search(query=f'ti:"{title}"', max_results=limit)
+                search_results = self.client.results(search)
+                
+                for result in search_results:
+                    logger.info(f"标题: {result.title}")
+                    logger.info(f"作者: {', '.join(author.name for author in result.authors)}")
+                    logger.info(f"发布日期: {result.published.strftime('%Y-%m')}")
+                    data.append(result)
+                    if len(data) >= limit:
+                        break
+                        
+                break  # 成功获取结果，跳出重试循环
+                
+            except Exception as e:
+                retry_count += 1
+                logger.warning(f"ArXiv API请求失败 (尝试 {retry_count}/{max_retries}): {e}")
+                
+                if retry_count < max_retries:
+                    logger.info(f"等待 {retry_wait} 秒后重试...")
+                    time.sleep(retry_wait)
+                    retry_wait *= 2  # 指数退避
+                else:
+                    logger.error(f"达到最大重试次数，返回空列表")
+        
         return [self._post_process(item) for item in data] if format_result else data
 
     @classmethod
     def download_pdf(cls, obj: Union[FormattedArxivObj, arxiv.Result], save_dir: str):
+        """下载论文PDF"""
         # 两种类都有这个属性
         title = obj.title
         filename = f"{title}.pdf"
-        for ch in ('?', '/', ':', '\\'):
+        
+        # 移除文件名中的非法字符
+        for ch in ('?', '/', ':', '\\', '*', '"', '<', '>', '|'):
             filename = filename.replace(ch, '_')
-        # arxiv_result.download_pdf(save_dir, filename=filename)
+            
+        # 防止文件名过长
+        if len(filename) > 150:
+            filename = filename[:147] + "..."
+            
         path = os.path.join(save_dir, filename)
-        written_path, _ = urlretrieve(obj.pdf_url, path)
-        logger.info(f"{title} downloaded to {written_path}")
-
-    # 通过关键字查询
+        
+        # 添加重试逻辑
+        max_retries = 3
+        retry_wait = 2
+        
+        for attempt in range(max_retries):
+            try:
+                written_path, _ = urlretrieve(obj.pdf_url, path)
+                logger.info(f"论文 '{title}' 已下载到 {written_path}")
+                return written_path
+            except Exception as e:
+                logger.warning(f"下载PDF失败 (尝试 {attempt+1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    logger.info(f"等待 {retry_wait} 秒后重试...")
+                    time.sleep(retry_wait)
+                    retry_wait *= 2  # 指数退避
+                else:
+                    logger.error(f"达到最大重试次数，下载失败")
+                    raise
 
     def search_by_keywords(self, keywords, categories=None, limit=10, format_result=True) -> Union[List[FormattedArxivObj], List[arxiv.Result]]:
+        """通过关键词和分类搜索论文"""
         data = []
 
         # 构建查询字符串
@@ -299,7 +461,7 @@ class ArxivVisitor:
         # 处理分类
         if categories:
             if isinstance(categories, list):
-                # 如果分类是列表，使用 OR 连接
+                # 修正分类格式: 直接列出多个分类
                 category_query = ' OR '.join([f'cat:{cat}' for cat in categories])
                 query_parts.append('(' + category_query + ')')
             else:
@@ -311,26 +473,40 @@ class ArxivVisitor:
 
         logger.info(f"构建的查询：{query}")
 
-        search = arxiv.Search(
-            query=query,
-            max_results=limit,
-            sort_by=arxiv.SortCriterion.SubmittedDate,
-            sort_order=arxiv.SortOrder.Descending
-        )
-        search_results = self.client.results(search)
-        for result in search_results:
-            logger.info(f"标题：{result.title}")
-            logger.info(f"作者：{', '.join(author.name for author in result.authors)}")
-            logger.info(f"发布日期：{result.published.strftime('%Y-%m')}")
-            data.append(result)
-            if len(data) >= limit:
-                break
+        # 添加重试逻辑
+        retry_count = 0
+        max_retries = self.max_retries
+        retry_wait = self.retry_wait
+        
+        while retry_count < max_retries:
+            try:
+                search = arxiv.Search(
+                    query=query,
+                    max_results=limit,
+                    sort_by=arxiv.SortCriterion.SubmittedDate,
+                    sort_order=arxiv.SortOrder.Descending
+                )
+                
+                search_results = self.client.results(search)
+                for result in search_results:
+                    logger.info(f"标题：{result.title}")
+                    logger.info(f"作者：{', '.join(author.name for author in result.authors)}")
+                    logger.info(f"发布日期：{result.published.strftime('%Y-%m')}")
+                    data.append(result)
+                    if len(data) >= limit:
+                        break
+                        
+                break  # 成功获取结果，跳出重试循环
+                
+            except Exception as e:
+                retry_count += 1
+                logger.warning(f"ArXiv API请求失败 (尝试 {retry_count}/{max_retries}): {e}")
+                
+                if retry_count < max_retries:
+                    logger.info(f"等待 {retry_wait} 秒后重试...")
+                    time.sleep(retry_wait)
+                    retry_wait *= 2  # 指数退避
+                else:
+                    logger.error(f"达到最大重试次数，返回空列表")
+        
         return [self._post_process(item) for item in data] if format_result else data
-    
-
-if __name__ == '__main__':
-    print(__file__)
-
-    
-    
-    

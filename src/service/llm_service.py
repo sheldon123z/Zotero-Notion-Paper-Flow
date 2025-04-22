@@ -79,7 +79,7 @@ def chat(prompt, retry_count=MAX_RETRIES-1, service="deepseek", response_format=
         except Exception as e:
             sleeping_seconds = (MAX_RETRIES - retry_count) * 2
             retry_count -= 1
-            logger.warning(f"{e} sleeping {sleeping_seconds}s, prompt: {prompt}")
+            # logger.warning(f"{e} sleeping {sleeping_seconds}s, prompt: {prompt}")
             time.sleep(sleeping_seconds)
     return ""
 
