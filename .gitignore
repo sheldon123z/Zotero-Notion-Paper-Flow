@@ -140,3 +140,5 @@ instance/
 **/__pypackages__/
 **/output/
 **/bin/*.sh
+
+/logs

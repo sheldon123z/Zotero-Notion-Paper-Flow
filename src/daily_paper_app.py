@@ -34,7 +34,7 @@ def setup_logging():
     project_root = Path(__file__).parent.parent.resolve()
     
     # 将日志文件保存在项目根目录下，可以根据需要修改这个路径
-    log_file = os.path.join(project_root, f'daily_paper_{datetime.now().strftime("%Y%m%d")}.log')
+    log_file = os.path.join(project_root, f'./logs/daily_paper_{datetime.now().strftime("%Y%m%d")}.log')
     
     # 配置根日志记录器
     logging.basicConfig(
@@ -52,19 +52,6 @@ def setup_logging():
 # 创建日志记录器
 logger = setup_logging()
 
-# 定义分类映射 - 将论文主题映射到Zotero分类
-category_map = {
-    'NLP': ["WXBCJ969", "DFGZNVCM"],
-    'RL': ["DXU9QIKA", "DFGZNVCM"],
-    'MARL': ["8DXU5DFC", "DFGZNVCM"],
-    'MTS': ["JSYLDU9Z", "DFGZNVCM"],
-    '多模态': ["H2AHAFZF", "DFGZNVCM"],
-    'CV': ["H8W7XVEC", "DFGZNVCM"],
-    'ML': ["TFK8IUCH", "DFGZNVCM"],
-    'LLM': ["WXBCJ969", "DFGZNVCM"],  # 默认与NLP同类
-    'DL': ["TFK8IUCH", "DFGZNVCM"],   # 深度学习与机器学习同类
-}
-
 def load_config(config_path=None):
     """加载配置文件"""
     if not config_path:
@@ -81,10 +68,23 @@ def load_config(config_path=None):
             "zotero": True,
             "wolai": False
         },
-        "download_pdf": True,  # 新增: 是否下载PDF
-        "pdf_dir": "papers/pdf",  # 新增: PDF保存目录
-        "search_limit": 10,
-        "retries": 3
+        "download_pdf": True,
+        "pdf_dir": "papers/pdf",
+        "search_limit": 20,
+        "retries": 3,
+        # 添加默认的分类映射
+        "category_map": {
+            "NLP": ["WXBCJ969", "DFGZNVCM"],
+            "RL": ["DXU9QIKA", "DFGZNVCM"],
+            "MARL": ["8DXU5DFC", "DFGZNVCM"],
+            "MTS": ["JSYLDU9Z", "DFGZNVCM"],
+            "多模态": ["H2AHAFZF", "DFGZNVCM"],
+            "CV": ["H8W7XVEC", "DFGZNVCM"],
+            "ML": ["TFK8IUCH", "DFGZNVCM"],
+            "LLM": ["WXBCJ969", "DFGZNVCM"],
+            "DL": ["TFK8IUCH", "DFGZNVCM"]
+        },
+        "default_category": ["DFGZNVCM"]
     }
     
     # 尝试加载配置文件
@@ -105,11 +105,18 @@ def load_config(config_path=None):
     return default_config
 
 def process_arxiv_papers(arxiv_visitor, notion_service, wolai_service, zotero_service, 
-                        keywords, categories, date, limit=20, enable_services=None, download_pdf=True, pdf_dir=None):
+                        keywords, categories, date, limit=20, enable_services=None, 
+                        download_pdf=True, pdf_dir=None, category_map=None, default_category=None):
     """处理ArXiv论文"""
     if enable_services is None:
         enable_services = {"notion": True, "zotero": True, "wolai": True}
+        
+    if category_map is None:
+        category_map = {}
     
+    if default_category is None:
+        default_category = ["DFGZNVCM"]
+        
     logger.info(f"搜索关键词: {keywords}, 分类: {categories}, 限制: {limit}")
     
     output_root = os.path.join(project_root, 'output')
@@ -168,7 +175,7 @@ def process_arxiv_papers(arxiv_visitor, notion_service, wolai_service, zotero_se
                     try:
                         logger.info(f"插入到Zotero: {arxiv_obj.id}")
                         # 查找匹配的分类，如果没有则使用默认分类
-                        params = category_map.get(arxiv_obj.category, ["DFGZNVCM"])
+                        params = category_map.get(arxiv_obj.category, default_category)
                         zotero_service.insert(arxiv_obj, params)
                         logger.info(f"成功插入到Zotero: {arxiv_obj.id}")
                     except Exception as e:
@@ -209,11 +216,17 @@ def process_arxiv_papers(arxiv_visitor, notion_service, wolai_service, zotero_se
     return processed_count, error_count, len(search_results)
 
 def process_hf_papers(hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, 
-                      enable_services=None, download_pdf=True, pdf_dir=None):
+                      enable_services=None, download_pdf=True, pdf_dir=None, category_map=None, default_category=None):
     """处理HuggingFace论文"""
     if enable_services is None:
         enable_services = {"notion": True, "zotero": True, "wolai": True}
+        
+    if category_map is None:
+        category_map = {}
     
+    if default_category is None:
+        default_category = ["DFGZNVCM"]
+        
     output_root = os.path.join(project_root, 'output')
     create_dt = hf_visitor.datetime.strftime('%Y-%m-%d')
     ckpt_filename = os.path.join(output_root, "cache", f"ckpt_{create_dt}.txt")
@@ -272,7 +285,7 @@ def process_hf_papers(hf_visitor, arxiv_visitor, notion_service, wolai_service, 
                 if enable_services.get("zotero", True) and zotero_service is not None:
                     try:
                         logger.info(f"插入到Zotero: {hf_obj['id']}")
-                        params = category_map.get(arxiv_obj.category, ["DFGZNVCM"])
+                        params = category_map.get(arxiv_obj.category, default_category)
                         zotero_service.insert(arxiv_obj, params)
                         logger.info(f"成功插入到Zotero: {hf_obj['id']}")
                     except Exception as e:
@@ -339,6 +352,7 @@ def main(args=None):
     config = load_config(args.config if hasattr(args, 'config') and args.config else None)
     
     # 命令行参数覆盖配置文件
+    # 命令行参数覆盖配置文件
     keywords = args.keywords if hasattr(args, 'keywords') and args.keywords else config.get('keywords')
     categories = args.categories if hasattr(args, 'categories') and args.categories else config.get('categories')
     date = args.date if hasattr(args, 'date') and args.date else config.get('date')
@@ -346,7 +360,12 @@ def main(args=None):
     
     # PDF下载相关配置
     download_pdf = args.download_pdf if hasattr(args, 'download_pdf') and args.download_pdf is not None else config.get('download_pdf', True)
+    print(f"PDF下载设置: {download_pdf}")
     pdf_dir = args.pdf_dir if hasattr(args, 'pdf_dir') and args.pdf_dir else config.get('pdf_dir', os.path.join(project_root, 'papers', 'pdf'))
+
+    # 获取分类映射和默认分类
+    category_map = config.get('category_map', {})
+    default_category = config.get('default_category', ["DFGZNVCM"])
     
     # 设置日期
     if date:
@@ -406,7 +425,7 @@ def main(args=None):
                     processed, errors, total = process_arxiv_papers(
                         arxiv_visitor, notion_service, wolai_service, zotero_service,
                         keywords, categories, current_date, limit, enable_services,
-                        download_pdf, pdf_dir
+                        download_pdf, pdf_dir, category_map, default_category  # 传递分类映射参数
                     )
                     total_arxiv_processed += processed
                     logger.info(f"日期 {current_date} ArXiv论文: 处理 {processed}/{total}, 错误 {errors}")
@@ -420,7 +439,7 @@ def main(args=None):
                     hf_visitor = HFDailyPaperVisitor(output_root, dt=current_date)
                     processed, errors, total = process_hf_papers(
                         hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, 
-                        enable_services, download_pdf, pdf_dir
+                        enable_services, download_pdf, pdf_dir, category_map, default_category  # 传递分类映射参数
                     )
                     total_hf_processed += processed
                     logger.info(f"日期 {current_date} HuggingFace论文: 处理 {processed}/{total}, 错误 {errors}")
@@ -451,7 +470,7 @@ def main(args=None):
                 processed, errors, total = process_arxiv_papers(
                     arxiv_visitor, notion_service, wolai_service, zotero_service,
                     keywords, categories, date, limit, enable_services,
-                    download_pdf, pdf_dir
+                    download_pdf, pdf_dir, category_map, default_category
                 )
                 arxiv_processed = processed
                 logger.info(f"ArXiv论文: 处理 {processed}/{total}, 错误 {errors}")
@@ -465,7 +484,7 @@ def main(args=None):
                 hf_visitor = HFDailyPaperVisitor(output_root, dt=date)
                 processed, errors, total = process_hf_papers(
                     hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, 
-                    enable_services, download_pdf, pdf_dir
+                    enable_services, download_pdf, pdf_dir, category_map, default_category
                 )
                 hf_processed = processed
                 logger.info(f"HuggingFace论文: 处理 {processed}/{total}, 错误 {errors}")
