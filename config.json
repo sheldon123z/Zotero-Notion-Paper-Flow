@@ -18,7 +18,9 @@
         "zotero": false,
         "wolai": true
     },
-    "search_limit": 20,
+    "download_pdf": true,
+    "pdf_dir": "papers/pdf",
+    "search_limit": 10,
     "retries": 3,
     "category_map": {
         "NLP": [

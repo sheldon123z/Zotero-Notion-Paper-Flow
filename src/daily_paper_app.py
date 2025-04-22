@@ -1,6 +1,6 @@
 """
 Modified by Xiaodong Zheng on 2025/4/22
-增加错误处理、命令行参数解析、日志记录和可配置性
+增加错误处理、命令行参数解析、日志记录、PDF自动下载和可配置性
 """
 import os
 import sys
@@ -24,6 +24,7 @@ from service.hf_visotor import HFDailyPaperVisitor
 from service.notion_service import NotionService
 from service.wolai_service import WolaiService 
 from service.zotero_service import ZoteroService
+from service.pdf_downloader import download_paper_pdfs
 
 # 设置日志
 
@@ -80,7 +81,9 @@ def load_config(config_path=None):
             "zotero": True,
             "wolai": False
         },
-        "search_limit": 20,
+        "download_pdf": True,  # 新增: 是否下载PDF
+        "pdf_dir": "papers/pdf",  # 新增: PDF保存目录
+        "search_limit": 10,
         "retries": 3
     }
     
@@ -102,7 +105,7 @@ def load_config(config_path=None):
     return default_config
 
 def process_arxiv_papers(arxiv_visitor, notion_service, wolai_service, zotero_service, 
-                        keywords, categories, date, limit=20, enable_services=None):
+                        keywords, categories, date, limit=20, enable_services=None, download_pdf=True, pdf_dir=None):
     """处理ArXiv论文"""
     if enable_services is None:
         enable_services = {"notion": True, "zotero": True, "wolai": True}
@@ -116,6 +119,11 @@ def process_arxiv_papers(arxiv_visitor, notion_service, wolai_service, zotero_se
     os.makedirs(os.path.dirname(arxiv_ckpt_filename), exist_ok=True)
     if not os.path.exists(arxiv_ckpt_filename):
         open(arxiv_ckpt_filename, 'w').close()
+    
+    # 确保PDF目录存在
+    if download_pdf and pdf_dir:
+        os.makedirs(pdf_dir, exist_ok=True)
+        logger.info(f"PDF将保存到: {pdf_dir}")
     
     # 加载已处理的论文ID
     with open(arxiv_ckpt_filename, 'r') as f:
@@ -140,6 +148,20 @@ def process_arxiv_papers(arxiv_visitor, notion_service, wolai_service, zotero_se
                 
             try:
                 logger.info(f"处理文章: {arxiv_obj.id}, 标题: {arxiv_obj.title}, 分类: {arxiv_obj.category}")
+                
+                # 下载PDF文件
+                if download_pdf and pdf_dir:
+                    try:
+                        logger.info(f"开始下载PDF: {arxiv_obj.id}")
+                        # 使用pdf_downloader中的下载函数
+                        pdf_paths = download_paper_pdfs([arxiv_obj.id], pdf_dir, arxiv_visitor)
+                        if pdf_paths:
+                            logger.info(f"PDF已下载到: {pdf_paths[0]}")
+                        else:
+                            logger.warning(f"PDF下载失败: {arxiv_obj.id}")
+                    except Exception as e:
+                        logger.error(f"下载PDF时出错: {e}")
+                        logger.debug(traceback.format_exc())
                 
                 # 插入到Zotero
                 if enable_services.get("zotero", True) and zotero_service is not None:
@@ -186,7 +208,8 @@ def process_arxiv_papers(arxiv_visitor, notion_service, wolai_service, zotero_se
     
     return processed_count, error_count, len(search_results)
 
-def process_hf_papers(hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, enable_services=None):
+def process_hf_papers(hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, 
+                      enable_services=None, download_pdf=True, pdf_dir=None):
     """处理HuggingFace论文"""
     if enable_services is None:
         enable_services = {"notion": True, "zotero": True, "wolai": True}
@@ -199,6 +222,11 @@ def process_hf_papers(hf_visitor, arxiv_visitor, notion_service, wolai_service, 
     os.makedirs(os.path.dirname(ckpt_filename), exist_ok=True)
     if not os.path.exists(ckpt_filename):
         open(ckpt_filename, 'w').close()
+        
+    # 确保PDF目录存在
+    if download_pdf and pdf_dir:
+        os.makedirs(pdf_dir, exist_ok=True)
+        logger.info(f"PDF将保存到: {pdf_dir}")
     
     # 加载已处理的论文ID
     with open(ckpt_filename, 'r') as f:
@@ -225,6 +253,20 @@ def process_hf_papers(hf_visitor, arxiv_visitor, notion_service, wolai_service, 
                     continue
                 
                 logger.info(f"分类: {arxiv_obj.category}")
+                
+                # 下载PDF文件
+                if download_pdf and pdf_dir:
+                    try:
+                        logger.info(f"开始下载PDF: {hf_obj['id']}")
+                        # 使用pdf_downloader中的下载函数
+                        pdf_paths = download_paper_pdfs([hf_obj['id']], pdf_dir, arxiv_visitor)
+                        if pdf_paths:
+                            logger.info(f"PDF已下载到: {pdf_paths[0]}")
+                        else:
+                            logger.warning(f"PDF下载失败: {hf_obj['id']}")
+                    except Exception as e:
+                        logger.error(f"下载PDF时出错: {e}")
+                        logger.debug(traceback.format_exc())
                 
                 # 插入到Zotero
                 if enable_services.get("zotero", True) and zotero_service is not None:
@@ -288,6 +330,9 @@ def main(args=None):
         parser.add_argument('--no-arxiv', action='store_true', help='不处理ArXiv搜索')
         parser.add_argument('--limit', type=int, help='搜索结果限制')
         parser.add_argument('--days', type=int, help='处理过去几天的数据（与date互斥）')
+        parser.add_argument('--download-pdf', action='store_true', help='下载论文PDF')
+        parser.add_argument('--no-download-pdf', action='store_false', dest='download_pdf', help='不下载论文PDF')
+        parser.add_argument('--pdf-dir', type=str, help='PDF保存目录')
         args = parser.parse_args()
     
     # 加载配置
@@ -298,6 +343,10 @@ def main(args=None):
     categories = args.categories if hasattr(args, 'categories') and args.categories else config.get('categories')
     date = args.date if hasattr(args, 'date') and args.date else config.get('date')
     limit = args.limit if hasattr(args, 'limit') and args.limit else config.get('search_limit', 20)
+    
+    # PDF下载相关配置
+    download_pdf = args.download_pdf if hasattr(args, 'download_pdf') and args.download_pdf is not None else config.get('download_pdf', True)
+    pdf_dir = args.pdf_dir if hasattr(args, 'pdf_dir') and args.pdf_dir else config.get('pdf_dir', os.path.join(project_root, 'papers', 'pdf'))
     
     # 设置日期
     if date:
@@ -319,6 +368,9 @@ def main(args=None):
     logger.info(f"关键词: {keywords}")
     logger.info(f"分类: {categories}")
     logger.info(f"启用服务: {enable_services}")
+    logger.info(f"下载PDF: {download_pdf}")
+    if download_pdf:
+        logger.info(f"PDF保存目录: {pdf_dir}")
     
     # 初始化组件
     output_root = os.path.join(project_root, 'output')
@@ -353,7 +405,8 @@ def main(args=None):
                 try:
                     processed, errors, total = process_arxiv_papers(
                         arxiv_visitor, notion_service, wolai_service, zotero_service,
-                        keywords, categories, current_date, limit, enable_services
+                        keywords, categories, current_date, limit, enable_services,
+                        download_pdf, pdf_dir
                     )
                     total_arxiv_processed += processed
                     logger.info(f"日期 {current_date} ArXiv论文: 处理 {processed}/{total}, 错误 {errors}")
@@ -366,7 +419,8 @@ def main(args=None):
                 try:
                     hf_visitor = HFDailyPaperVisitor(output_root, dt=current_date)
                     processed, errors, total = process_hf_papers(
-                        hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, enable_services
+                        hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, 
+                        enable_services, download_pdf, pdf_dir
                     )
                     total_hf_processed += processed
                     logger.info(f"日期 {current_date} HuggingFace论文: 处理 {processed}/{total}, 错误 {errors}")
@@ -396,7 +450,8 @@ def main(args=None):
             try:
                 processed, errors, total = process_arxiv_papers(
                     arxiv_visitor, notion_service, wolai_service, zotero_service,
-                    keywords, categories, date, limit, enable_services
+                    keywords, categories, date, limit, enable_services,
+                    download_pdf, pdf_dir
                 )
                 arxiv_processed = processed
                 logger.info(f"ArXiv论文: 处理 {processed}/{total}, 错误 {errors}")
@@ -409,7 +464,8 @@ def main(args=None):
             try:
                 hf_visitor = HFDailyPaperVisitor(output_root, dt=date)
                 processed, errors, total = process_hf_papers(
-                    hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, enable_services
+                    hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, 
+                    enable_services, download_pdf, pdf_dir
                 )
                 hf_processed = processed
                 logger.info(f"HuggingFace论文: 处理 {processed}/{total}, 错误 {errors}")
@@ -426,9 +482,6 @@ def main(args=None):
                 logger.error(f"发送Slack通知失败: {e}")
     
     logger.info("程序运行完成")
-
-
-
 
 if __name__ == '__main__':
     try:
