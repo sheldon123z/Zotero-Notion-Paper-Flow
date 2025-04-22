@@ -61,9 +61,42 @@ python setup.py install
 
 ## 启动程序
 
+### 命令行运行方式
+
+可以使用以下命令运行主程序，并支持多个参数控制抓取行为：
+
 ```bash
-sh bin/start_daily_paper_app_example.sh
+python src/daily_paper_app.py [选项参数]
 ```
+
+常用参数说明如下：
+
+| 参数                | 示例                             | 说明                                      |
+| ------------------- | -------------------------------- | ----------------------------------------- |
+| `--keywords`        | `"LLM" "reinforcement learning"` | 搜索关键词（支持多个）                    |
+| `--categories`      | `cs.LG cs.AI`                    | 指定arXiv分类                             |
+| `--date`            | `2025-04-21`                     | 指定日期，只处理该日论文                  |
+| `--days`            | `3`                              | 处理过去 `n` 天的论文（与 `--date` 互斥） |
+| `--limit`           | `20`                             | 每日最多处理论文数量                      |
+| `--download-pdf`    | —                                | 下载PDF（flag）                           |
+| `--no-download-pdf` | —                                | 不下载PDF（flag）                         |
+| `--pdf-dir`         | `papers/pdf`                     | PDF保存目录                               |
+| `--no-arxiv`        | —                                | 跳过arXiv抓取                             |
+| `--no-hf`           | —                                | 跳过HuggingFace抓取                       |
+| `--config`          | `./config.json`                  | 指定配置文件路径                          |
+
+示例命令：
+
+```bash
+python src/daily_paper_app.py --keywords diffusion "RL" --date 2025-04-21 --download-pdf
+```
+配置好自己的.sh服务后可以使用bash启动
+
+```bash
+sh bin/start_daily_paper_app.sh
+```
+
+
 ## 修改配置文件
 新增了在arxiv上使用分类进行搜索的能力，具体说明可看[这里](./src/service/config_setting.md)
 
