@@ -142,3 +142,14 @@ instance/
 **/bin/*.sh
 
 /logs
+
+# Desktop App (Electron)
+desktop-app/node_modules/
+desktop-app/dist/
+desktop-app/.electron-builder/
+desktop-app/out/
+*.dmg
+*.AppImage
+*.deb
+*.exe
+*.msi

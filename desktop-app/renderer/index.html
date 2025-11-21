@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <title>Paper Flow - 论文自动化管理</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-icon">📚</div>
+        <h1>Paper Flow</h1>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-tab="api-keys">
+          <span class="nav-icon">🔑</span>
+          <span>API 密钥</span>
+        </button>
+        <button class="nav-item" data-tab="search-config">
+          <span class="nav-icon">🔍</span>
+          <span>搜索配置</span>
+        </button>
+        <button class="nav-item" data-tab="services">
+          <span class="nav-icon">⚙️</span>
+          <span>服务设置</span>
+        </button>
+        <button class="nav-item" data-tab="run">
+          <span class="nav-icon">▶️</span>
+          <span>运行</span>
+        </button>
+        <button class="nav-item" data-tab="logs">
+          <span class="nav-icon">📋</span>
+          <span>日志</span>
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="status-indicator">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">就绪</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+      <!-- API 密钥配置 -->
+      <section class="tab-content active" id="api-keys">
+        <h2>API 密钥配置</h2>
+        <p class="section-desc">配置各服务的 API 密钥和认证信息</p>
+
+        <!-- Notion 配置 -->
+        <div class="config-card">
+          <h3>Notion 配置</h3>
+          <div class="form-group">
+            <label for="notionSecret">Notion Secret</label>
+            <input type="password" id="notionSecret" placeholder="secret_xxxxxxxxxx">
+            <span class="help-text">在 <a href="#" class="link" data-url="https://www.notion.so/my-integrations">Notion Integrations</a> 页面创建并获取</span>
+          </div>
+          <div class="form-group">
+            <label for="notionDbId">Database ID</label>
+            <input type="text" id="notionDbId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+            <span class="help-text">从 Notion 数据库链接中获取</span>
+          </div>
+        </div>
+
+        <!-- LLM 配置 -->
+        <div class="config-card">
+          <h3>LLM 服务配置 <span class="badge required">至少配置一个</span></h3>
+
+          <div class="subsection">
+            <h4>Kimi (Moonshot)</h4>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="kimiApiKey">API Key</label>
+                <input type="password" id="kimiApiKey" placeholder="sk-xxxxxxxxxx">
+              </div>
+              <div class="form-group flex-1">
+                <label for="kimiUrl">API URL</label>
+                <input type="text" id="kimiUrl" value="https://api.moonshot.cn/v1">
+              </div>
+            </div>
+          </div>
+
+          <div class="subsection">
+            <h4>DeepSeek</h4>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="deepseekApiKey">API Key</label>
+                <input type="password" id="deepseekApiKey" placeholder="sk-xxxxxxxxxx">
+              </div>
+              <div class="form-group flex-1">
+                <label for="deepseekUrl">API URL</label>
+                <input type="text" id="deepseekUrl" value="https://api.deepseek.com">
+              </div>
+            </div>
+          </div>
+
+          <div class="subsection">
+            <h4>自定义 LLM</h4>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="defaultApiKey">API Key</label>
+                <input type="password" id="defaultApiKey" placeholder="API Key">
+              </div>
+              <div class="form-group flex-1">
+                <label for="defaultBaseUrl">Base URL</label>
+                <input type="text" id="defaultBaseUrl" placeholder="https://api.example.com/v1">
+              </div>
+              <div class="form-group flex-1">
+                <label for="defaultModelName">Model Name</label>
+                <input type="text" id="defaultModelName" placeholder="gpt-4">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Zotero 配置 -->
+        <div class="config-card">
+          <h3>Zotero 配置 <span class="badge optional">可选</span></h3>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="zoteroApiKey">API Key</label>
+              <input type="password" id="zoteroApiKey" placeholder="Zotero API Key">
+              <span class="help-text">在 <a href="#" class="link" data-url="https://www.zotero.org/settings/keys">Zotero API Keys</a> 页面获取</span>
+            </div>
+            <div class="form-group flex-1">
+              <label for="zoteroUserId">User ID</label>
+              <input type="text" id="zoteroUserId" placeholder="用户 ID">
+            </div>
+            <div class="form-group flex-1">
+              <label for="zoteroGroupId">Group ID (可选)</label>
+              <input type="text" id="zoteroGroupId" placeholder="群组 ID">
+            </div>
+          </div>
+        </div>
+
+        <!-- Wolai 配置 -->
+        <div class="config-card">
+          <h3>我来 (Wolai) 配置 <span class="badge optional">可选</span></h3>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="wolaiToken">Token</label>
+              <input type="password" id="wolaiToken" placeholder="Wolai API Token">
+            </div>
+            <div class="form-group flex-1">
+              <label for="wolaiDbId">Database ID</label>
+              <input type="text" id="wolaiDbId" placeholder="数据库 ID">
+            </div>
+          </div>
+        </div>
+
+        <!-- Slack 配置 -->
+        <div class="config-card">
+          <h3>Slack 通知 <span class="badge optional">可选</span></h3>
+          <div class="form-group">
+            <label for="slackApiKey">Slack API Key</label>
+            <input type="password" id="slackApiKey" placeholder="xoxb-xxxxxxxxxx">
+          </div>
+        </div>
+
+        <!-- 代理配置 -->
+        <div class="config-card">
+          <h3>网络代理 <span class="badge optional">可选</span></h3>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="httpProxy">HTTP Proxy</label>
+              <input type="text" id="httpProxy" placeholder="http://127.0.0.1:7890">
+            </div>
+            <div class="form-group flex-1">
+              <label for="httpsProxy">HTTPS Proxy</label>
+              <input type="text" id="httpsProxy" placeholder="http://127.0.0.1:7890">
+            </div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" id="saveEnvConfig">保存配置</button>
+        </div>
+      </section>
+
+      <!-- 搜索配置 -->
+      <section class="tab-content" id="search-config">
+        <h2>搜索配置</h2>
+        <p class="section-desc">设置论文搜索的关键词和筛选条件</p>
+
+        <div class="config-card">
+          <h3>关键词设置</h3>
+          <p class="help-text">每行一个关键词，同一行多个关键词用逗号分隔表示 OR 逻辑</p>
+          <div class="form-group">
+            <label for="keywords">搜索关键词</label>
+            <textarea id="keywords" rows="6" placeholder="例如：
+reinforcement learning
+LLM, large language model
+diffusion model"></textarea>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>ArXiv 分类</h3>
+          <div class="category-grid" id="categoryGrid">
+            <!-- 分类选项将动态生成 -->
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>搜索限制</h3>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="searchLimit">每次最多论文数</label>
+              <input type="number" id="searchLimit" value="10" min="1" max="100">
+            </div>
+            <div class="form-group flex-1">
+              <label for="retries">失败重试次数</label>
+              <input type="number" id="retries" value="3" min="1" max="10">
+            </div>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>PDF 下载设置</h3>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="downloadPdf" checked>
+              <span>启用 PDF 下载</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="pdfDir">PDF 保存目录</label>
+            <div class="input-with-button">
+              <input type="text" id="pdfDir" value="papers">
+              <button class="btn btn-secondary" id="selectPdfDir">选择目录</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" id="saveSearchConfig">保存配置</button>
+        </div>
+      </section>
+
+      <!-- 服务设置 -->
+      <section class="tab-content" id="services">
+        <h2>服务设置</h2>
+        <p class="section-desc">启用或禁用各个集成服务</p>
+
+        <div class="config-card">
+          <h3>论文来源</h3>
+          <div class="service-list">
+            <label class="service-item">
+              <input type="checkbox" id="enableArxiv" checked>
+              <div class="service-info">
+                <span class="service-name">ArXiv</span>
+                <span class="service-desc">从 ArXiv 获取论文</span>
+              </div>
+            </label>
+            <label class="service-item">
+              <input type="checkbox" id="enableHf" checked>
+              <div class="service-info">
+                <span class="service-name">HuggingFace Daily Papers</span>
+                <span class="service-desc">从 HuggingFace 获取每日推荐论文</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>同步目标</h3>
+          <div class="service-list">
+            <label class="service-item">
+              <input type="checkbox" id="enableNotion" checked>
+              <div class="service-info">
+                <span class="service-name">Notion</span>
+                <span class="service-desc">同步论文到 Notion 数据库</span>
+              </div>
+            </label>
+            <label class="service-item">
+              <input type="checkbox" id="enableZotero">
+              <div class="service-info">
+                <span class="service-name">Zotero</span>
+                <span class="service-desc">同步论文到 Zotero 文献库</span>
+              </div>
+            </label>
+            <label class="service-item">
+              <input type="checkbox" id="enableWolai">
+              <div class="service-info">
+                <span class="service-name">我来 (Wolai)</span>
+                <span class="service-desc">同步论文到我来知识库</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="config-card" id="zoteroCategories" style="display: none;">
+          <h3>Zotero 分类映射</h3>
+          <p class="help-text">将论文标签映射到 Zotero 分类 ID</p>
+          <div id="categoryMapContainer">
+            <!-- 动态生成 -->
+          </div>
+          <button class="btn btn-secondary btn-sm" id="addCategoryMap">+ 添加映射</button>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" id="saveServiceConfig">保存配置</button>
+        </div>
+      </section>
+
+      <!-- 运行 -->
+      <section class="tab-content" id="run">
+        <h2>运行任务</h2>
+        <p class="section-desc">启动论文抓取和处理任务</p>
+
+        <div class="config-card">
+          <h3>运行选项</h3>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="runDate">指定日期 (可选)</label>
+              <input type="date" id="runDate">
+            </div>
+            <div class="form-group flex-1">
+              <label for="runDays">处理天数</label>
+              <input type="number" id="runDays" value="1" min="1" max="30">
+            </div>
+            <div class="form-group flex-1">
+              <label for="runLimit">论文数量限制</label>
+              <input type="number" id="runLimit" value="10" min="1" max="100">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="runDownloadPdf" checked>
+                <span>下载 PDF</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="runNoArxiv">
+                <span>跳过 ArXiv</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="runNoHf">
+                <span>跳过 HuggingFace</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary btn-lg" id="startRun">
+            <span class="btn-icon">▶️</span>
+            开始运行
+          </button>
+          <button class="btn btn-danger btn-lg" id="stopRun" disabled>
+            <span class="btn-icon">⏹️</span>
+            停止
+          </button>
+        </div>
+
+        <div class="config-card">
+          <h3>实时日志</h3>
+          <div class="log-container" id="realtimeLog">
+            <div class="log-placeholder">点击"开始运行"后，日志将在此显示...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 日志 -->
+      <section class="tab-content" id="logs">
+        <h2>历史日志</h2>
+        <p class="section-desc">查看历史运行日志</p>
+
+        <div class="config-card">
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="logDate">选择日期</label>
+              <input type="date" id="logDate">
+            </div>
+            <div class="form-group">
+              <button class="btn btn-secondary" id="loadLog">加载日志</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <div class="log-container" id="historyLog">
+            <div class="log-placeholder">选择日期后，日志将在此显示...</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
