@@ -37,7 +37,7 @@ jobs:
 
       - name: 获取PR变更文件
         id: changed-files
-        uses: tj-actions/changed-files@v44
+        uses: tj-actions/changed-files@v47
         with:
           separator: "\n"
 
