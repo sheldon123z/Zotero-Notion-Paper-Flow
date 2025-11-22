@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -9,6 +9,13 @@ const store = new Store();
 
 let mainWindow;
 let pythonProcess = null;
+let schedulerTimer = null;
+let schedulerStatus = {
+  enabled: false,
+  nextRun: null,
+  lastRun: null,
+  lastResult: null
+};
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -35,8 +42,6 @@ function createWindow() {
     mainWindow = null;
   });
 }
-
-app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -357,16 +362,278 @@ ipcMain.handle('get-processed-papers', async () => {
         try {
           const content = fs.readFileSync(path.join(cacheDir, file), 'utf-8');
           const data = JSON.parse(content);
-          papers.push(...data);
+          if (Array.isArray(data)) {
+            papers.push(...data);
+          } else if (data) {
+            papers.push(data);
+          }
         } catch (e) {
           console.error(`读取文件失败: ${file}`, e);
         }
       }
     });
 
+    // 按日期排序，最新的在前
+    papers.sort((a, b) => {
+      const dateA = new Date(a.published || a.date || 0);
+      const dateB = new Date(b.published || b.date || 0);
+      return dateB - dateA;
+    });
+
     return papers;
   } catch (error) {
     console.error('获取已处理论文失败:', error);
     return [];
+  }
+});
+
+// ==================== 定时任务功能 ====================
+
+// 获取定时任务配置
+ipcMain.handle('get-scheduler-config', async () => {
+  return store.get('schedulerConfig', {
+    enabled: false,
+    type: 'daily',
+    dailyTime: '08:00',
+    weeklyTime: '08:00',
+    weekdays: [1, 2, 3, 4, 5],
+    intervalValue: 6,
+    intervalUnit: 'hours',
+    days: 1,
+    limit: 20,
+    downloadPdf: true,
+    notify: true,
+    autoStart: false,
+    runInBackground: false
+  });
+});
+
+// 保存定时任务配置
+ipcMain.handle('save-scheduler-config', async (event, config) => {
+  try {
+    store.set('schedulerConfig', config);
+
+    // 更新定时任务
+    if (config.enabled) {
+      startScheduler(config);
+    } else {
+      stopScheduler();
+    }
+
+    // 处理开机自启动
+    if (config.autoStart !== undefined) {
+      app.setLoginItemSettings({
+        openAtLogin: config.autoStart,
+        openAsHidden: config.runInBackground
+      });
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('保存定时任务配置失败:', error);
+    throw error;
+  }
+});
+
+// 获取定时任务状态
+ipcMain.handle('get-scheduler-status', async () => {
+  return schedulerStatus;
+});
+
+// 启动定时任务
+function startScheduler(config) {
+  stopScheduler();
+
+  schedulerStatus.enabled = true;
+  const nextRunTime = calculateNextRunTime(config);
+  schedulerStatus.nextRun = nextRunTime ? formatDateTime(nextRunTime) : null;
+
+  if (!nextRunTime) {
+    return;
+  }
+
+  const delay = nextRunTime.getTime() - Date.now();
+
+  schedulerTimer = setTimeout(() => {
+    runScheduledTask(config);
+  }, Math.max(0, delay));
+
+  console.log(`定时任务已启动，下次运行: ${schedulerStatus.nextRun}`);
+}
+
+// 停止定时任务
+function stopScheduler() {
+  if (schedulerTimer) {
+    clearTimeout(schedulerTimer);
+    schedulerTimer = null;
+  }
+  schedulerStatus.enabled = false;
+  schedulerStatus.nextRun = null;
+}
+
+// 计算下次运行时间
+function calculateNextRunTime(config) {
+  const now = new Date();
+
+  if (config.type === 'daily') {
+    const [hours, minutes] = config.dailyTime.split(':').map(Number);
+    const next = new Date(now);
+    next.setHours(hours, minutes, 0, 0);
+
+    if (next <= now) {
+      next.setDate(next.getDate() + 1);
+    }
+    return next;
+
+  } else if (config.type === 'weekly') {
+    const [hours, minutes] = config.weeklyTime.split(':').map(Number);
+    const weekdays = config.weekdays || [];
+
+    if (weekdays.length === 0) {
+      return null;
+    }
+
+    for (let i = 0; i < 7; i++) {
+      const next = new Date(now);
+      next.setDate(next.getDate() + i);
+      next.setHours(hours, minutes, 0, 0);
+
+      if (weekdays.includes(next.getDay()) && next > now) {
+        return next;
+      }
+    }
+    return null;
+
+  } else if (config.type === 'interval') {
+    const value = config.intervalValue || 6;
+    const unit = config.intervalUnit || 'hours';
+    const ms = unit === 'hours' ? value * 60 * 60 * 1000 : value * 60 * 1000;
+
+    return new Date(now.getTime() + ms);
+  }
+
+  return null;
+}
+
+// 运行定时任务
+async function runScheduledTask(config) {
+  console.log('开始运行定时任务...');
+  schedulerStatus.lastRun = formatDateTime(new Date());
+
+  try {
+    const projectRoot = path.resolve(__dirname, '..');
+    const scriptPath = path.join(projectRoot, 'src/daily_paper_app.py');
+
+    const args = [scriptPath];
+    args.push('--days', (config.days || 1).toString());
+    args.push('--limit', (config.limit || 20).toString());
+
+    if (config.downloadPdf) {
+      args.push('--download-pdf');
+    }
+
+    // 设置环境变量
+    const env = { ...process.env };
+    const envConfig = store.get('envConfig', {});
+    Object.keys(envConfig).forEach(key => {
+      if (envConfig[key]) {
+        env[key] = envConfig[key];
+      }
+    });
+
+    const process_child = spawn('python3', args, {
+      cwd: projectRoot,
+      env: env
+    });
+
+    process_child.on('close', (code) => {
+      if (code === 0) {
+        schedulerStatus.lastResult = '成功';
+        if (config.notify) {
+          showNotification('Paper Flow', '定时任务执行成功');
+        }
+      } else {
+        schedulerStatus.lastResult = `失败 (代码: ${code})`;
+        if (config.notify) {
+          showNotification('Paper Flow', `定时任务执行失败 (代码: ${code})`);
+        }
+      }
+
+      // 重新调度下次任务
+      const schedulerConfig = store.get('schedulerConfig', {});
+      if (schedulerConfig.enabled) {
+        startScheduler(schedulerConfig);
+      }
+    });
+
+    process_child.on('error', (error) => {
+      schedulerStatus.lastResult = `错误: ${error.message}`;
+      console.error('定时任务执行错误:', error);
+    });
+
+  } catch (error) {
+    schedulerStatus.lastResult = `错误: ${error.message}`;
+    console.error('定时任务执行错误:', error);
+  }
+}
+
+// 显示系统通知
+function showNotification(title, body) {
+  if (Notification.isSupported()) {
+    new Notification({ title, body }).show();
+  }
+}
+
+// 格式化日期时间
+function formatDateTime(date) {
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+// ==================== 系统功能 ====================
+
+// 打开外部链接
+ipcMain.handle('open-external', async (event, url) => {
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error) {
+    console.error('打开外部链接失败:', error);
+    throw error;
+  }
+});
+
+// 设置开机自启动
+ipcMain.handle('set-auto-start', async (event, enable) => {
+  try {
+    app.setLoginItemSettings({
+      openAtLogin: enable
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('设置开机自启动失败:', error);
+    throw error;
+  }
+});
+
+// 获取开机自启动状态
+ipcMain.handle('get-auto-start-status', async () => {
+  const settings = app.getLoginItemSettings();
+  return { enabled: settings.openAtLogin };
+});
+
+// 应用启动时恢复定时任务
+app.whenReady().then(() => {
+  createWindow();
+
+  // 恢复定时任务
+  const schedulerConfig = store.get('schedulerConfig', {});
+  if (schedulerConfig.enabled) {
+    startScheduler(schedulerConfig);
   }
 });

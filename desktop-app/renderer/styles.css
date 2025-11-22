@@ -613,6 +613,305 @@ textarea {
   background: var(--secondary-color);
 }
 
+/* 单选按钮组 */
+.radio-group {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: normal !important;
+  color: var(--text-primary) !important;
+}
+
+.radio-label input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* 星期选择网格 */
+.weekday-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.weekday-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--bg-color);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.weekday-item:hover {
+  background: var(--border-color);
+}
+
+.weekday-item input {
+  width: 14px;
+  height: 14px;
+}
+
+/* 定时任务状态 */
+.scheduler-status {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--bg-color);
+  border-radius: var(--radius);
+}
+
+.status-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-width: 100px;
+}
+
+.status-value {
+  color: var(--text-primary);
+}
+
+.status-value.active {
+  color: var(--success-color);
+  font-weight: 500;
+}
+
+.status-value.inactive {
+  color: var(--text-light);
+}
+
+/* 统计卡片网格 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* 论文筛选 */
+.paper-filters {
+  margin-bottom: 0;
+}
+
+.paper-filters .form-row {
+  align-items: flex-end;
+}
+
+.paper-filters .form-group {
+  margin-bottom: 0;
+}
+
+.flex-2 {
+  flex: 2;
+  min-width: 300px;
+}
+
+/* 论文列表 */
+.paper-list-container {
+  min-height: 400px;
+}
+
+.paper-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.paper-placeholder {
+  text-align: center;
+  color: var(--text-light);
+  padding: 40px;
+  font-style: italic;
+}
+
+.paper-item {
+  padding: 16px;
+  background: var(--bg-color);
+  border-radius: var(--radius);
+  transition: all 0.15s ease;
+  border-left: 3px solid transparent;
+}
+
+.paper-item:hover {
+  background: var(--border-color);
+  border-left-color: var(--primary-color);
+}
+
+.paper-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.paper-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.paper-title a:hover {
+  color: var(--primary-color);
+}
+
+.paper-meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.paper-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.paper-summary {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.paper-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.paper-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--text-secondary);
+}
+
+.paper-tag.category {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.paper-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.paper-actions .btn {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* 分页 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.pagination-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-btn.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.pagination-info {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 12px;
+}
+
+/* 时间输入 */
+input[type="time"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input[type="time"]:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
 /* 响应式 */
 @media (max-width: 900px) {
   .sidebar {
@@ -639,5 +938,13 @@ textarea {
     margin-left: 60px;
     padding: 24px 20px;
     max-width: calc(100vw - 60px);
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .flex-2 {
+    min-width: 100%;
   }
 }

@@ -29,16 +29,7 @@ let config = {};
 let envConfig = {};
 let isRunning = false;
 
-// 初始化
-document.addEventListener('DOMContentLoaded', async () => {
-  initNavigation();
-  initCategoryGrid();
-  await loadConfig();
-  await loadEnvConfig();
-  await checkRunningStatus();
-  initEventListeners();
-  setupPythonLogListener();
-});
+// 初始化 - 移动到文件末尾统一处理
 
 // 初始化导航
 function initNavigation() {
@@ -537,3 +528,412 @@ function showToast(message, type = 'info') {
     toast.remove();
   }, 3000);
 }
+
+// ==================== 论文管理功能 ====================
+
+let allPapers = [];
+let filteredPapers = [];
+let currentPage = 1;
+const papersPerPage = 10;
+
+// 初始化论文管理
+async function initPapersTab() {
+  await loadPapers();
+  initPaperEventListeners();
+}
+
+// 加载论文数据
+async function loadPapers() {
+  try {
+    allPapers = await window.electronAPI.getProcessedPapers();
+    filteredPapers = [...allPapers];
+    updatePaperStats();
+    updateCategoryFilter();
+    renderPapers();
+  } catch (error) {
+    console.error('加载论文失败:', error);
+    document.getElementById('paperList').innerHTML =
+      '<div class="paper-placeholder">加载论文失败，请稍后重试</div>';
+  }
+}
+
+// 更新统计信息
+function updatePaperStats() {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const todayPapers = allPapers.filter(p => {
+    const date = new Date(p.published || p.date || p.created_at);
+    return date >= today;
+  });
+
+  const weekPapers = allPapers.filter(p => {
+    const date = new Date(p.published || p.date || p.created_at);
+    return date >= weekAgo;
+  });
+
+  const categories = new Set();
+  allPapers.forEach(p => {
+    if (p.categories) {
+      (Array.isArray(p.categories) ? p.categories : [p.categories]).forEach(c => categories.add(c));
+    }
+  });
+
+  document.getElementById('totalPapers').textContent = allPapers.length;
+  document.getElementById('todayPapers').textContent = todayPapers.length;
+  document.getElementById('weekPapers').textContent = weekPapers.length;
+  document.getElementById('categoriesCount').textContent = categories.size;
+}
+
+// 更新分类筛选器
+function updateCategoryFilter() {
+  const categories = new Set();
+  allPapers.forEach(p => {
+    if (p.categories) {
+      (Array.isArray(p.categories) ? p.categories : [p.categories]).forEach(c => categories.add(c));
+    }
+  });
+
+  const select = document.getElementById('paperCategoryFilter');
+  select.innerHTML = '<option value="">全部分类</option>';
+  Array.from(categories).sort().forEach(cat => {
+    const option = document.createElement('option');
+    option.value = cat;
+    option.textContent = cat;
+    select.appendChild(option);
+  });
+}
+
+// 筛选论文
+function filterPapers() {
+  const searchText = document.getElementById('paperSearch').value.toLowerCase();
+  const categoryFilter = document.getElementById('paperCategoryFilter').value;
+  const dateFilter = document.getElementById('paperDateFilter').value;
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  filteredPapers = allPapers.filter(paper => {
+    // 文本搜索
+    if (searchText) {
+      const title = (paper.title || '').toLowerCase();
+      const authors = (Array.isArray(paper.authors) ? paper.authors.join(' ') : (paper.authors || '')).toLowerCase();
+      const summary = (paper.summary || paper.abstract || '').toLowerCase();
+      if (!title.includes(searchText) && !authors.includes(searchText) && !summary.includes(searchText)) {
+        return false;
+      }
+    }
+
+    // 分类筛选
+    if (categoryFilter) {
+      const cats = Array.isArray(paper.categories) ? paper.categories : [paper.categories];
+      if (!cats.includes(categoryFilter)) {
+        return false;
+      }
+    }
+
+    // 日期筛选
+    if (dateFilter) {
+      const paperDate = new Date(paper.published || paper.date || paper.created_at);
+      if (dateFilter === 'today' && paperDate < today) {
+        return false;
+      } else if (dateFilter === 'week') {
+        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        if (paperDate < weekAgo) return false;
+      } else if (dateFilter === 'month') {
+        const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+        if (paperDate < monthAgo) return false;
+      }
+    }
+
+    return true;
+  });
+
+  currentPage = 1;
+  renderPapers();
+}
+
+// 渲染论文列表
+function renderPapers() {
+  const container = document.getElementById('paperList');
+
+  if (filteredPapers.length === 0) {
+    container.innerHTML = '<div class="paper-placeholder">没有找到论文</div>';
+    renderPagination();
+    return;
+  }
+
+  const start = (currentPage - 1) * papersPerPage;
+  const end = start + papersPerPage;
+  const pagePapers = filteredPapers.slice(start, end);
+
+  container.innerHTML = pagePapers.map(paper => {
+    const title = paper.title || '无标题';
+    const authors = Array.isArray(paper.authors)
+      ? paper.authors.slice(0, 3).join(', ') + (paper.authors.length > 3 ? ' 等' : '')
+      : (paper.authors || '未知作者');
+    const date = paper.published || paper.date || '';
+    const summary = paper.tldr || paper.summary || paper.abstract || '';
+    const categories = Array.isArray(paper.categories) ? paper.categories : (paper.categories ? [paper.categories] : []);
+    const tags = Array.isArray(paper.tags) ? paper.tags : (paper.tags ? [paper.tags] : []);
+    const arxivId = paper.id || paper.arxiv_id || '';
+    const arxivUrl = arxivId ? `https://arxiv.org/abs/${arxivId.replace('arxiv:', '')}` : '';
+    const pdfUrl = paper.pdf_url || (arxivId ? `https://arxiv.org/pdf/${arxivId.replace('arxiv:', '')}.pdf` : '');
+
+    return `
+      <div class="paper-item">
+        <div class="paper-title">
+          ${arxivUrl ? `<a href="#" data-url="${arxivUrl}">${title}</a>` : title}
+        </div>
+        <div class="paper-meta">
+          <span class="paper-meta-item">👤 ${authors}</span>
+          ${date ? `<span class="paper-meta-item">📅 ${formatDate(date)}</span>` : ''}
+          ${arxivId ? `<span class="paper-meta-item">📑 ${arxivId}</span>` : ''}
+        </div>
+        ${summary ? `<div class="paper-summary">${summary}</div>` : ''}
+        <div class="paper-tags">
+          ${categories.map(c => `<span class="paper-tag category">${c}</span>`).join('')}
+          ${tags.slice(0, 5).map(t => `<span class="paper-tag">${t}</span>`).join('')}
+        </div>
+        <div class="paper-actions">
+          ${arxivUrl ? `<button class="btn btn-secondary" data-url="${arxivUrl}">打开 ArXiv</button>` : ''}
+          ${pdfUrl ? `<button class="btn btn-secondary" data-url="${pdfUrl}">查看 PDF</button>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 绑定链接点击事件
+  container.querySelectorAll('[data-url]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.electronAPI.openExternal(el.dataset.url);
+    });
+  });
+
+  renderPagination();
+}
+
+// 渲染分页
+function renderPagination() {
+  const container = document.getElementById('pagination');
+  const totalPages = Math.ceil(filteredPapers.length / papersPerPage);
+
+  if (totalPages <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+
+  let html = `
+    <button class="pagination-btn" ${currentPage === 1 ? 'disabled' : ''} data-page="${currentPage - 1}">‹</button>
+  `;
+
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+      html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+    } else if (i === currentPage - 3 || i === currentPage + 3) {
+      html += `<span class="pagination-info">...</span>`;
+    }
+  }
+
+  html += `
+    <button class="pagination-btn" ${currentPage === totalPages ? 'disabled' : ''} data-page="${currentPage + 1}">›</button>
+  `;
+
+  container.innerHTML = html;
+
+  container.querySelectorAll('.pagination-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const page = parseInt(btn.dataset.page);
+      if (page >= 1 && page <= totalPages) {
+        currentPage = page;
+        renderPapers();
+      }
+    });
+  });
+}
+
+// 格式化日期
+function formatDate(dateStr) {
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  } catch {
+    return dateStr;
+  }
+}
+
+// 初始化论文事件监听
+function initPaperEventListeners() {
+  document.getElementById('paperSearch').addEventListener('input', debounce(filterPapers, 300));
+  document.getElementById('paperCategoryFilter').addEventListener('change', filterPapers);
+  document.getElementById('paperDateFilter').addEventListener('change', filterPapers);
+  document.getElementById('refreshPapers').addEventListener('click', loadPapers);
+}
+
+// 防抖函数
+function debounce(func, wait) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+}
+
+// ==================== 定时任务功能 ====================
+
+let schedulerConfig = {};
+
+// 初始化定时任务
+async function initSchedulerTab() {
+  await loadSchedulerConfig();
+  initSchedulerEventListeners();
+}
+
+// 加载定时任务配置
+async function loadSchedulerConfig() {
+  try {
+    schedulerConfig = await window.electronAPI.getSchedulerConfig();
+    applySchedulerConfigToUI();
+  } catch (error) {
+    console.error('加载定时任务配置失败:', error);
+  }
+}
+
+// 应用定时任务配置到 UI
+function applySchedulerConfigToUI() {
+  document.getElementById('enableScheduler').checked = schedulerConfig.enabled || false;
+
+  // 运行频率
+  const scheduleType = schedulerConfig.type || 'daily';
+  document.querySelectorAll('input[name="scheduleType"]').forEach(radio => {
+    radio.checked = radio.value === scheduleType;
+  });
+  updateScheduleOptionsVisibility(scheduleType);
+
+  // 每天配置
+  document.getElementById('dailyTime').value = schedulerConfig.dailyTime || '08:00';
+
+  // 每周配置
+  document.getElementById('weeklyTime').value = schedulerConfig.weeklyTime || '08:00';
+  const weekdays = schedulerConfig.weekdays || [];
+  document.querySelectorAll('#weeklyOptions input[type="checkbox"]').forEach(cb => {
+    cb.checked = weekdays.includes(parseInt(cb.value));
+  });
+
+  // 间隔配置
+  document.getElementById('intervalValue').value = schedulerConfig.intervalValue || 6;
+  document.getElementById('intervalUnit').value = schedulerConfig.intervalUnit || 'hours';
+
+  // 任务设置
+  document.getElementById('scheduleDays').value = schedulerConfig.days || 1;
+  document.getElementById('scheduleLimit').value = schedulerConfig.limit || 20;
+  document.getElementById('scheduleDownloadPdf').checked = schedulerConfig.downloadPdf !== false;
+  document.getElementById('scheduleNotify').checked = schedulerConfig.notify !== false;
+
+  // 系统设置
+  document.getElementById('autoStart').checked = schedulerConfig.autoStart || false;
+  document.getElementById('runInBackground').checked = schedulerConfig.runInBackground || false;
+
+  // 更新状态显示
+  updateSchedulerStatus();
+}
+
+// 从 UI 收集定时任务配置
+function collectSchedulerConfigFromUI() {
+  const scheduleType = document.querySelector('input[name="scheduleType"]:checked').value;
+
+  const weekdays = [];
+  document.querySelectorAll('#weeklyOptions input[type="checkbox"]:checked').forEach(cb => {
+    weekdays.push(parseInt(cb.value));
+  });
+
+  return {
+    enabled: document.getElementById('enableScheduler').checked,
+    type: scheduleType,
+    dailyTime: document.getElementById('dailyTime').value,
+    weeklyTime: document.getElementById('weeklyTime').value,
+    weekdays: weekdays,
+    intervalValue: parseInt(document.getElementById('intervalValue').value) || 6,
+    intervalUnit: document.getElementById('intervalUnit').value,
+    days: parseInt(document.getElementById('scheduleDays').value) || 1,
+    limit: parseInt(document.getElementById('scheduleLimit').value) || 20,
+    downloadPdf: document.getElementById('scheduleDownloadPdf').checked,
+    notify: document.getElementById('scheduleNotify').checked,
+    autoStart: document.getElementById('autoStart').checked,
+    runInBackground: document.getElementById('runInBackground').checked
+  };
+}
+
+// 更新定时任务选项显示
+function updateScheduleOptionsVisibility(type) {
+  document.getElementById('dailyOptions').style.display = type === 'daily' ? 'block' : 'none';
+  document.getElementById('weeklyOptions').style.display = type === 'weekly' ? 'block' : 'none';
+  document.getElementById('intervalOptions').style.display = type === 'interval' ? 'block' : 'none';
+}
+
+// 更新定时任务状态
+async function updateSchedulerStatus() {
+  try {
+    const status = await window.electronAPI.getSchedulerStatus();
+
+    const statusEl = document.getElementById('schedulerStatus');
+    statusEl.textContent = status.enabled ? '运行中' : '未启用';
+    statusEl.className = `status-value ${status.enabled ? 'active' : 'inactive'}`;
+
+    document.getElementById('nextRunTime').textContent = status.nextRun || '-';
+    document.getElementById('lastRunTime').textContent = status.lastRun || '-';
+    document.getElementById('lastRunResult').textContent = status.lastResult || '-';
+  } catch (error) {
+    console.error('获取定时任务状态失败:', error);
+  }
+}
+
+// 初始化定时任务事件监听
+function initSchedulerEventListeners() {
+  // 运行频率切换
+  document.querySelectorAll('input[name="scheduleType"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      updateScheduleOptionsVisibility(e.target.value);
+    });
+  });
+
+  // 保存配置
+  document.getElementById('saveSchedulerConfig').addEventListener('click', async () => {
+    const newConfig = collectSchedulerConfigFromUI();
+    try {
+      await window.electronAPI.saveSchedulerConfig(newConfig);
+      schedulerConfig = newConfig;
+      await updateSchedulerStatus();
+      showToast('定时任务配置已保存', 'success');
+    } catch (error) {
+      showToast('保存失败: ' + error.message, 'error');
+    }
+  });
+
+  // 立即运行
+  document.getElementById('runSchedulerNow').addEventListener('click', async () => {
+    showToast('正在启动任务...', 'info');
+    // 切换到运行标签页
+    document.querySelector('[data-tab="run"]').click();
+    // 触发运行
+    document.getElementById('startRun').click();
+  });
+}
+
+// ==================== 初始化 ====================
+
+document.addEventListener('DOMContentLoaded', async () => {
+  initNavigation();
+  initCategoryGrid();
+  await loadConfig();
+  await loadEnvConfig();
+  await checkRunningStatus();
+  initEventListeners();
+  setupPythonLogListener();
+
+  // 初始化论文管理和定时任务
+  await initPapersTab();
+  await initSchedulerTab();
+});

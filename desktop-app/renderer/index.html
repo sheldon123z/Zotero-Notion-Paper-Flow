@@ -28,9 +28,17 @@
           <span class="nav-icon">⚙️</span>
           <span>服务设置</span>
         </button>
+        <button class="nav-item" data-tab="scheduler">
+          <span class="nav-icon">⏰</span>
+          <span>定时任务</span>
+        </button>
         <button class="nav-item" data-tab="run">
           <span class="nav-icon">▶️</span>
           <span>运行</span>
+        </button>
+        <button class="nav-item" data-tab="papers">
+          <span class="nav-icon">📄</span>
+          <span>论文管理</span>
         </button>
         <button class="nav-item" data-tab="logs">
           <span class="nav-icon">📋</span>
@@ -367,6 +375,243 @@ diffusion model"></textarea>
           <h3>实时日志</h3>
           <div class="log-container" id="realtimeLog">
             <div class="log-placeholder">点击"开始运行"后，日志将在此显示...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 定时任务 -->
+      <section class="tab-content" id="scheduler">
+        <h2>定时任务</h2>
+        <p class="section-desc">配置自动运行计划</p>
+
+        <div class="config-card">
+          <h3>定时任务开关</h3>
+          <div class="service-list">
+            <label class="service-item">
+              <input type="checkbox" id="enableScheduler">
+              <div class="service-info">
+                <span class="service-name">启用定时任务</span>
+                <span class="service-desc">按设定时间自动运行论文抓取</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>运行计划</h3>
+          <div class="form-group">
+            <label>运行频率</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" name="scheduleType" value="daily" checked>
+                <span>每天</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="scheduleType" value="weekly">
+                <span>每周</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="scheduleType" value="interval">
+                <span>固定间隔</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 每天配置 -->
+          <div class="schedule-options" id="dailyOptions">
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="dailyTime">运行时间</label>
+                <input type="time" id="dailyTime" value="08:00">
+              </div>
+            </div>
+          </div>
+
+          <!-- 每周配置 -->
+          <div class="schedule-options" id="weeklyOptions" style="display: none;">
+            <div class="form-group">
+              <label>选择星期</label>
+              <div class="weekday-grid">
+                <label class="weekday-item">
+                  <input type="checkbox" value="1"> <span>周一</span>
+                </label>
+                <label class="weekday-item">
+                  <input type="checkbox" value="2"> <span>周二</span>
+                </label>
+                <label class="weekday-item">
+                  <input type="checkbox" value="3"> <span>周三</span>
+                </label>
+                <label class="weekday-item">
+                  <input type="checkbox" value="4"> <span>周四</span>
+                </label>
+                <label class="weekday-item">
+                  <input type="checkbox" value="5"> <span>周五</span>
+                </label>
+                <label class="weekday-item">
+                  <input type="checkbox" value="6"> <span>周六</span>
+                </label>
+                <label class="weekday-item">
+                  <input type="checkbox" value="0"> <span>周日</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="weeklyTime">运行时间</label>
+              <input type="time" id="weeklyTime" value="08:00">
+            </div>
+          </div>
+
+          <!-- 固定间隔配置 -->
+          <div class="schedule-options" id="intervalOptions" style="display: none;">
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="intervalValue">间隔</label>
+                <input type="number" id="intervalValue" value="6" min="1" max="24">
+              </div>
+              <div class="form-group flex-1">
+                <label for="intervalUnit">单位</label>
+                <select id="intervalUnit">
+                  <option value="hours">小时</option>
+                  <option value="minutes">分钟</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>任务设置</h3>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="scheduleDays">处理天数</label>
+              <input type="number" id="scheduleDays" value="1" min="1" max="7">
+            </div>
+            <div class="form-group flex-1">
+              <label for="scheduleLimit">论文数量限制</label>
+              <input type="number" id="scheduleLimit" value="20" min="1" max="100">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="scheduleDownloadPdf" checked>
+              <span>下载 PDF</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="scheduleNotify" checked>
+              <span>任务完成后发送通知</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>系统设置</h3>
+          <div class="service-list">
+            <label class="service-item">
+              <input type="checkbox" id="autoStart">
+              <div class="service-info">
+                <span class="service-name">开机自启动</span>
+                <span class="service-desc">系统启动时自动运行 Paper Flow</span>
+              </div>
+            </label>
+            <label class="service-item">
+              <input type="checkbox" id="runInBackground">
+              <div class="service-info">
+                <span class="service-name">后台运行</span>
+                <span class="service-desc">关闭窗口时最小化到系统托盘</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>任务状态</h3>
+          <div class="scheduler-status">
+            <div class="status-row">
+              <span class="status-label">当前状态：</span>
+              <span class="status-value" id="schedulerStatus">未启用</span>
+            </div>
+            <div class="status-row">
+              <span class="status-label">下次运行：</span>
+              <span class="status-value" id="nextRunTime">-</span>
+            </div>
+            <div class="status-row">
+              <span class="status-label">上次运行：</span>
+              <span class="status-value" id="lastRunTime">-</span>
+            </div>
+            <div class="status-row">
+              <span class="status-label">上次结果：</span>
+              <span class="status-value" id="lastRunResult">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" id="saveSchedulerConfig">保存配置</button>
+          <button class="btn btn-secondary" id="runSchedulerNow">立即运行一次</button>
+        </div>
+      </section>
+
+      <!-- 论文管理 -->
+      <section class="tab-content" id="papers">
+        <h2>论文管理</h2>
+        <p class="section-desc">查看和管理已处理的论文</p>
+
+        <!-- 统计卡片 -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="totalPapers">0</div>
+            <div class="stat-label">总论文数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="todayPapers">0</div>
+            <div class="stat-label">今日新增</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="weekPapers">0</div>
+            <div class="stat-label">本周新增</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="categoriesCount">0</div>
+            <div class="stat-label">分类数</div>
+          </div>
+        </div>
+
+        <!-- 搜索和筛选 -->
+        <div class="config-card">
+          <div class="paper-filters">
+            <div class="form-row">
+              <div class="form-group flex-2">
+                <input type="text" id="paperSearch" placeholder="搜索论文标题、作者、摘要...">
+              </div>
+              <div class="form-group flex-1">
+                <select id="paperCategoryFilter">
+                  <option value="">全部分类</option>
+                </select>
+              </div>
+              <div class="form-group flex-1">
+                <select id="paperDateFilter">
+                  <option value="">全部时间</option>
+                  <option value="today">今天</option>
+                  <option value="week">本周</option>
+                  <option value="month">本月</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <button class="btn btn-secondary" id="refreshPapers">刷新</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 论文列表 -->
+        <div class="config-card paper-list-container">
+          <div class="paper-list" id="paperList">
+            <div class="paper-placeholder">正在加载论文列表...</div>
+          </div>
+          <div class="pagination" id="pagination">
+            <!-- 分页控件 -->
           </div>
         </div>
       </section>

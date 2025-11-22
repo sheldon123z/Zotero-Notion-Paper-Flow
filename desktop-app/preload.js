@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, shell } = require('electron');
 
 // 安全地暴露 API 到渲染进程
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -34,4 +34,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectDirectory: () => ipcRenderer.invoke('select-directory'),
   readLogFile: (date) => ipcRenderer.invoke('read-log-file', date),
   getProcessedPapers: () => ipcRenderer.invoke('get-processed-papers'),
+
+  // 定时任务
+  getSchedulerConfig: () => ipcRenderer.invoke('get-scheduler-config'),
+  saveSchedulerConfig: (config) => ipcRenderer.invoke('save-scheduler-config', config),
+  getSchedulerStatus: () => ipcRenderer.invoke('get-scheduler-status'),
+
+  // 系统功能
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  setAutoStart: (enable) => ipcRenderer.invoke('set-auto-start', enable),
+  getAutoStartStatus: () => ipcRenderer.invoke('get-auto-start-status'),
 });
