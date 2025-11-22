@@ -62,10 +62,16 @@
 
         <!-- Notion 配置 -->
         <div class="config-card">
-          <h3>Notion 配置</h3>
+          <div class="card-header">
+            <h3>Notion 配置</h3>
+            <button class="btn btn-sm btn-secondary test-btn" data-service="notion">测试连接</button>
+          </div>
           <div class="form-group">
             <label for="notionSecret">Notion Secret</label>
-            <input type="password" id="notionSecret" placeholder="secret_xxxxxxxxxx">
+            <div class="password-input-wrapper">
+              <input type="password" id="notionSecret" placeholder="secret_xxxxxxxxxx">
+              <button type="button" class="password-toggle" data-target="notionSecret">👁</button>
+            </div>
             <span class="help-text">在 <a href="#" class="link" data-url="https://www.notion.so/my-integrations">Notion Integrations</a> 页面创建并获取</span>
           </div>
           <div class="form-group">
@@ -77,14 +83,20 @@
 
         <!-- LLM 配置 -->
         <div class="config-card">
-          <h3>LLM 服务配置 <span class="badge required">至少配置一个</span></h3>
+          <div class="card-header">
+            <h3>LLM 服务配置 <span class="badge required">至少配置一个</span></h3>
+            <button class="btn btn-sm btn-secondary test-btn" data-service="llm">测试连接</button>
+          </div>
 
           <div class="subsection">
             <h4>Kimi (Moonshot)</h4>
             <div class="form-row">
               <div class="form-group flex-1">
                 <label for="kimiApiKey">API Key</label>
-                <input type="password" id="kimiApiKey" placeholder="sk-xxxxxxxxxx">
+                <div class="password-input-wrapper">
+                  <input type="password" id="kimiApiKey" placeholder="sk-xxxxxxxxxx">
+                  <button type="button" class="password-toggle" data-target="kimiApiKey">👁</button>
+                </div>
               </div>
               <div class="form-group flex-1">
                 <label for="kimiUrl">API URL</label>
@@ -98,7 +110,10 @@
             <div class="form-row">
               <div class="form-group flex-1">
                 <label for="deepseekApiKey">API Key</label>
-                <input type="password" id="deepseekApiKey" placeholder="sk-xxxxxxxxxx">
+                <div class="password-input-wrapper">
+                  <input type="password" id="deepseekApiKey" placeholder="sk-xxxxxxxxxx">
+                  <button type="button" class="password-toggle" data-target="deepseekApiKey">👁</button>
+                </div>
               </div>
               <div class="form-group flex-1">
                 <label for="deepseekUrl">API URL</label>
@@ -112,7 +127,10 @@
             <div class="form-row">
               <div class="form-group flex-1">
                 <label for="defaultApiKey">API Key</label>
-                <input type="password" id="defaultApiKey" placeholder="API Key">
+                <div class="password-input-wrapper">
+                  <input type="password" id="defaultApiKey" placeholder="API Key">
+                  <button type="button" class="password-toggle" data-target="defaultApiKey">👁</button>
+                </div>
               </div>
               <div class="form-group flex-1">
                 <label for="defaultBaseUrl">Base URL</label>
@@ -128,11 +146,17 @@
 
         <!-- Zotero 配置 -->
         <div class="config-card">
-          <h3>Zotero 配置 <span class="badge optional">可选</span></h3>
+          <div class="card-header">
+            <h3>Zotero 配置 <span class="badge optional">可选</span></h3>
+            <button class="btn btn-sm btn-secondary test-btn" data-service="zotero">测试连接</button>
+          </div>
           <div class="form-row">
             <div class="form-group flex-1">
               <label for="zoteroApiKey">API Key</label>
-              <input type="password" id="zoteroApiKey" placeholder="Zotero API Key">
+              <div class="password-input-wrapper">
+                <input type="password" id="zoteroApiKey" placeholder="Zotero API Key">
+                <button type="button" class="password-toggle" data-target="zoteroApiKey">👁</button>
+              </div>
               <span class="help-text">在 <a href="#" class="link" data-url="https://www.zotero.org/settings/keys">Zotero API Keys</a> 页面获取</span>
             </div>
             <div class="form-group flex-1">
@@ -148,11 +172,17 @@
 
         <!-- Wolai 配置 -->
         <div class="config-card">
-          <h3>我来 (Wolai) 配置 <span class="badge optional">可选</span></h3>
+          <div class="card-header">
+            <h3>我来 (Wolai) 配置 <span class="badge optional">可选</span></h3>
+            <button class="btn btn-sm btn-secondary test-btn" data-service="wolai">测试连接</button>
+          </div>
           <div class="form-row">
             <div class="form-group flex-1">
               <label for="wolaiToken">Token</label>
-              <input type="password" id="wolaiToken" placeholder="Wolai API Token">
+              <div class="password-input-wrapper">
+                <input type="password" id="wolaiToken" placeholder="Wolai API Token">
+                <button type="button" class="password-toggle" data-target="wolaiToken">👁</button>
+              </div>
             </div>
             <div class="form-group flex-1">
               <label for="wolaiDbId">Database ID</label>
@@ -166,7 +196,10 @@
           <h3>Slack 通知 <span class="badge optional">可选</span></h3>
           <div class="form-group">
             <label for="slackApiKey">Slack API Key</label>
-            <input type="password" id="slackApiKey" placeholder="xoxb-xxxxxxxxxx">
+            <div class="password-input-wrapper">
+              <input type="password" id="slackApiKey" placeholder="xoxb-xxxxxxxxxx">
+              <button type="button" class="password-toggle" data-target="slackApiKey">👁</button>
+            </div>
           </div>
         </div>
 
@@ -187,6 +220,8 @@
 
         <div class="action-bar">
           <button class="btn btn-primary" id="saveEnvConfig">保存配置</button>
+          <button class="btn btn-secondary" id="exportConfig">导出配置</button>
+          <button class="btn btn-secondary" id="importConfig">导入配置</button>
         </div>
       </section>
 

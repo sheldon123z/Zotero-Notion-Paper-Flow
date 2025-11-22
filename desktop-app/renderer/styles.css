@@ -896,6 +896,71 @@ textarea {
   margin: 0 12px;
 }
 
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.card-header h3 {
+  margin-bottom: 0;
+}
+
+.card-header .test-btn {
+  flex-shrink: 0;
+}
+
+/* 密码输入框 */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  padding-right: 40px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.password-toggle:hover {
+  opacity: 1;
+}
+
+.password-toggle.visible {
+  opacity: 1;
+}
+
+/* 测试状态 */
+.test-btn.testing {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.test-btn.success {
+  background-color: var(--success-color);
+  border-color: var(--success-color);
+  color: white;
+}
+
+.test-btn.error {
+  background-color: var(--danger-color);
+  border-color: var(--danger-color);
+  color: white;
+}
+
 /* 时间输入 */
 input[type="time"] {
   width: 100%;

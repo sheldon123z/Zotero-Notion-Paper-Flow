@@ -44,4 +44,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
   setAutoStart: (enable) => ipcRenderer.invoke('set-auto-start', enable),
   getAutoStartStatus: () => ipcRenderer.invoke('get-auto-start-status'),
+
+  // API 连接测试
+  testConnection: (service, config) => ipcRenderer.invoke('test-connection', service, config),
+
+  // 配置导入/导出
+  exportConfig: (configData) => ipcRenderer.invoke('export-config', configData),
+  importConfig: () => ipcRenderer.invoke('import-config'),
 });

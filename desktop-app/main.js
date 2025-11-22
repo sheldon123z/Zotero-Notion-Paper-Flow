@@ -627,6 +627,246 @@ ipcMain.handle('get-auto-start-status', async () => {
   return { enabled: settings.openAtLogin };
 });
 
+// ==================== API 连接测试 ====================
+
+ipcMain.handle('test-connection', async (event, service, config) => {
+  const https = require('https');
+  const http = require('http');
+
+  return new Promise((resolve) => {
+    try {
+      if (service === 'notion') {
+        testNotionConnection(config, resolve);
+      } else if (service === 'llm') {
+        testLLMConnection(config, resolve);
+      } else if (service === 'zotero') {
+        testZoteroConnection(config, resolve);
+      } else if (service === 'wolai') {
+        testWolaiConnection(config, resolve);
+      } else {
+        resolve({ success: false, message: '未知服务' });
+      }
+    } catch (error) {
+      resolve({ success: false, message: error.message });
+    }
+  });
+});
+
+function testNotionConnection(config, resolve) {
+  if (!config.NOTION_SECRET) {
+    resolve({ success: false, message: 'Notion Secret 未配置' });
+    return;
+  }
+
+  const https = require('https');
+  const options = {
+    hostname: 'api.notion.com',
+    path: '/v1/users/me',
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${config.NOTION_SECRET}`,
+      'Notion-Version': '2022-06-28'
+    },
+    timeout: 10000
+  };
+
+  const req = https.request(options, (res) => {
+    if (res.statusCode === 200) {
+      resolve({ success: true });
+    } else {
+      resolve({ success: false, message: `HTTP ${res.statusCode}` });
+    }
+  });
+
+  req.on('error', (e) => {
+    resolve({ success: false, message: e.message });
+  });
+
+  req.on('timeout', () => {
+    req.destroy();
+    resolve({ success: false, message: '连接超时' });
+  });
+
+  req.end();
+}
+
+function testLLMConnection(config, resolve) {
+  const https = require('https');
+
+  // 优先测试 Kimi
+  if (config.KIMI_API_KEY && config.KIMI_URL) {
+    testOpenAICompatible(config.KIMI_URL, config.KIMI_API_KEY, resolve);
+  } else if (config.DEEPSEEK_API_KEY && config.DEEPSEEK_URL) {
+    testOpenAICompatible(config.DEEPSEEK_URL, config.DEEPSEEK_API_KEY, resolve);
+  } else if (config.DEFAULT_API_KEY && config.DEFAULT_BASE_URL) {
+    testOpenAICompatible(config.DEFAULT_BASE_URL, config.DEFAULT_API_KEY, resolve);
+  } else {
+    resolve({ success: false, message: 'LLM API 未配置' });
+  }
+}
+
+function testOpenAICompatible(baseUrl, apiKey, resolve) {
+  const https = require('https');
+  const url = new URL(baseUrl);
+
+  const options = {
+    hostname: url.hostname,
+    port: url.port || 443,
+    path: (url.pathname.endsWith('/') ? url.pathname : url.pathname + '/') + 'models',
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`
+    },
+    timeout: 10000
+  };
+
+  const req = https.request(options, (res) => {
+    if (res.statusCode === 200) {
+      resolve({ success: true });
+    } else {
+      resolve({ success: false, message: `HTTP ${res.statusCode}` });
+    }
+  });
+
+  req.on('error', (e) => {
+    resolve({ success: false, message: e.message });
+  });
+
+  req.on('timeout', () => {
+    req.destroy();
+    resolve({ success: false, message: '连接超时' });
+  });
+
+  req.end();
+}
+
+function testZoteroConnection(config, resolve) {
+  if (!config.ZOTERO_API_KEY || !config.ZOTERO_USER_ID) {
+    resolve({ success: false, message: 'Zotero API Key 或 User ID 未配置' });
+    return;
+  }
+
+  const https = require('https');
+  const options = {
+    hostname: 'api.zotero.org',
+    path: `/users/${config.ZOTERO_USER_ID}/items?limit=1`,
+    method: 'GET',
+    headers: {
+      'Zotero-API-Key': config.ZOTERO_API_KEY
+    },
+    timeout: 10000
+  };
+
+  const req = https.request(options, (res) => {
+    if (res.statusCode === 200) {
+      resolve({ success: true });
+    } else {
+      resolve({ success: false, message: `HTTP ${res.statusCode}` });
+    }
+  });
+
+  req.on('error', (e) => {
+    resolve({ success: false, message: e.message });
+  });
+
+  req.on('timeout', () => {
+    req.destroy();
+    resolve({ success: false, message: '连接超时' });
+  });
+
+  req.end();
+}
+
+function testWolaiConnection(config, resolve) {
+  if (!config.WOLAI_TOKEN) {
+    resolve({ success: false, message: 'Wolai Token 未配置' });
+    return;
+  }
+
+  const https = require('https');
+  const options = {
+    hostname: 'openapi.wolai.com',
+    path: '/v1/token',
+    method: 'GET',
+    headers: {
+      'Authorization': config.WOLAI_TOKEN
+    },
+    timeout: 10000
+  };
+
+  const req = https.request(options, (res) => {
+    if (res.statusCode === 200) {
+      resolve({ success: true });
+    } else {
+      resolve({ success: false, message: `HTTP ${res.statusCode}` });
+    }
+  });
+
+  req.on('error', (e) => {
+    resolve({ success: false, message: e.message });
+  });
+
+  req.on('timeout', () => {
+    req.destroy();
+    resolve({ success: false, message: '连接超时' });
+  });
+
+  req.end();
+}
+
+// ==================== 配置导入/导出 ====================
+
+ipcMain.handle('export-config', async (event, configData) => {
+  try {
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: '导出配置',
+      defaultPath: `paper-flow-config-${new Date().toISOString().slice(0, 10)}.json`,
+      filters: [
+        { name: 'JSON 文件', extensions: ['json'] }
+      ]
+    });
+
+    if (!result.canceled && result.filePath) {
+      fs.writeFileSync(result.filePath, JSON.stringify(configData, null, 2), 'utf-8');
+      return { success: true };
+    }
+
+    return { success: false, canceled: true };
+  } catch (error) {
+    console.error('导出配置失败:', error);
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle('import-config', async () => {
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: '导入配置',
+      filters: [
+        { name: 'JSON 文件', extensions: ['json'] }
+      ],
+      properties: ['openFile']
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+      const content = fs.readFileSync(result.filePaths[0], 'utf-8');
+      const data = JSON.parse(content);
+
+      // 验证配置格式
+      if (!data.version || !data.envConfig) {
+        return { success: false, message: '无效的配置文件格式' };
+      }
+
+      return { success: true, data };
+    }
+
+    return { success: false, canceled: true };
+  } catch (error) {
+    console.error('导入配置失败:', error);
+    return { success: false, message: error.message };
+  }
+});
+
 // 应用启动时恢复定时任务
 app.whenReady().then(() => {
   createWindow();

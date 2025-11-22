@@ -224,6 +224,15 @@ function collectServiceConfigFromUI() {
 
 // 初始化事件监听器
 function initEventListeners() {
+  // 初始化密码显示切换
+  initPasswordToggles();
+
+  // 初始化测试连接按钮
+  initTestButtons();
+
+  // 初始化配置导入/导出
+  initConfigIO();
+
   // 保存环境变量配置
   document.getElementById('saveEnvConfig').addEventListener('click', async () => {
     const newEnvConfig = collectEnvConfigFromUI();
@@ -920,6 +929,138 @@ function initSchedulerEventListeners() {
     // 触发运行
     document.getElementById('startRun').click();
   });
+}
+
+// ==================== 密码显示/隐藏切换 ====================
+
+function initPasswordToggles() {
+  document.querySelectorAll('.password-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      const input = document.getElementById(targetId);
+
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🔒';
+        btn.classList.add('visible');
+      } else {
+        input.type = 'password';
+        btn.textContent = '👁';
+        btn.classList.remove('visible');
+      }
+    });
+  });
+}
+
+// ==================== API 连接测试 ====================
+
+function initTestButtons() {
+  document.querySelectorAll('.test-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const service = btn.dataset.service;
+      await testServiceConnection(service, btn);
+    });
+  });
+}
+
+async function testServiceConnection(service, btn) {
+  const originalText = btn.textContent;
+  btn.textContent = '测试中...';
+  btn.classList.add('testing');
+  btn.classList.remove('success', 'error');
+
+  try {
+    const envData = collectEnvConfigFromUI();
+    const result = await window.electronAPI.testConnection(service, envData);
+
+    if (result.success) {
+      btn.textContent = '连接成功';
+      btn.classList.add('success');
+      showToast(`${getServiceName(service)} 连接成功`, 'success');
+    } else {
+      btn.textContent = '连接失败';
+      btn.classList.add('error');
+      showToast(`${getServiceName(service)} 连接失败: ${result.message}`, 'error');
+    }
+  } catch (error) {
+    btn.textContent = '连接失败';
+    btn.classList.add('error');
+    showToast(`测试失败: ${error.message}`, 'error');
+  }
+
+  // 3秒后恢复按钮状态
+  setTimeout(() => {
+    btn.textContent = originalText;
+    btn.classList.remove('testing', 'success', 'error');
+  }, 3000);
+}
+
+function getServiceName(service) {
+  const names = {
+    notion: 'Notion',
+    llm: 'LLM',
+    zotero: 'Zotero',
+    wolai: '我来'
+  };
+  return names[service] || service;
+}
+
+// ==================== 配置导入/导出 ====================
+
+function initConfigIO() {
+  document.getElementById('exportConfig').addEventListener('click', exportConfig);
+  document.getElementById('importConfig').addEventListener('click', importConfig);
+}
+
+async function exportConfig() {
+  try {
+    const envData = collectEnvConfigFromUI();
+    const configData = {
+      version: '1.0',
+      exportDate: new Date().toISOString(),
+      envConfig: envData,
+      searchConfig: config
+    };
+
+    const result = await window.electronAPI.exportConfig(configData);
+    if (result.success) {
+      showToast('配置已导出', 'success');
+    }
+  } catch (error) {
+    showToast('导出失败: ' + error.message, 'error');
+  }
+}
+
+async function importConfig() {
+  try {
+    const result = await window.electronAPI.importConfig();
+
+    if (result.success && result.data) {
+      const importedData = result.data;
+
+      // 应用导入的环境变量配置
+      if (importedData.envConfig) {
+        await window.electronAPI.saveEnvConfig(importedData.envConfig);
+        envConfig = importedData.envConfig;
+        applyEnvConfigToUI();
+      }
+
+      // 应用导入的搜索配置
+      if (importedData.searchConfig) {
+        config = { ...config, ...importedData.searchConfig };
+        await window.electronAPI.saveConfig(config);
+        applyConfigToUI();
+      }
+
+      showToast('配置已导入', 'success');
+    } else if (result.canceled) {
+      // 用户取消，不显示消息
+    } else {
+      showToast('导入失败: ' + (result.message || '未知错误'), 'error');
+    }
+  } catch (error) {
+    showToast('导入失败: ' + error.message, 'error');
+  }
 }
 
 // ==================== 初始化 ====================
