@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <title>Paper Flow - 论文自动化管理</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-icon">📚</div>
+        <h1>Paper Flow</h1>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active" data-tab="api-keys">
+          <span class="nav-icon">🔑</span>
+          <span>API 密钥</span>
+        </button>
+        <button class="nav-item" data-tab="search-config">
+          <span class="nav-icon">🔍</span>
+          <span>搜索配置</span>
+        </button>
+        <button class="nav-item" data-tab="services">
+          <span class="nav-icon">⚙️</span>
+          <span>服务设置</span>
+        </button>
+        <button class="nav-item" data-tab="scheduler">
+          <span class="nav-icon">⏰</span>
+          <span>定时任务</span>
+        </button>
+        <button class="nav-item" data-tab="run">
+          <span class="nav-icon">▶️</span>
+          <span>运行</span>
+        </button>
+        <button class="nav-item" data-tab="papers">
+          <span class="nav-icon">📄</span>
+          <span>论文管理</span>
+        </button>
+        <button class="nav-item" data-tab="logs">
+          <span class="nav-icon">📋</span>
+          <span data-i18n="nav.logs">日志</span>
+        </button>
+        <button class="nav-item" data-tab="advanced">
+          <span class="nav-icon">🔧</span>
+          <span data-i18n="nav.advanced">高级设置</span>
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <!-- 语言切换 -->
+        <div class="lang-select" style="margin-bottom: 12px;">
+          <button class="lang-btn active" data-lang="zh">中文</button>
+          <button class="lang-btn" data-lang="en">EN</button>
+        </div>
+        <!-- 主题切换 -->
+        <button class="theme-toggle" id="themeToggle">
+          <span class="theme-icon">🌙</span>
+          <span data-i18n="darkMode">深色模式</span>
+        </button>
+        <!-- 状态指示 -->
+        <div class="status-indicator" style="margin-top: 12px;">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText" data-i18n="ready">就绪</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+      <!-- API 密钥配置 -->
+      <section class="tab-content active" id="api-keys">
+        <h2>API 密钥配置</h2>
+        <p class="section-desc">配置各服务的 API 密钥和认证信息</p>
+
+        <!-- Notion 配置 -->
+        <div class="config-card">
+          <div class="card-header">
+            <h3>Notion 配置</h3>
+            <button class="btn btn-sm btn-secondary test-btn" data-service="notion">测试连接</button>
+          </div>
+          <div class="form-group">
+            <label for="notionSecret">Notion Secret</label>
+            <div class="password-input-wrapper">
+              <input type="password" id="notionSecret" placeholder="secret_xxxxxxxxxx">
+              <button type="button" class="password-toggle" data-target="notionSecret">👁</button>
+            </div>
+            <span class="help-text">在 <a href="#" class="link" data-url="https://www.notion.so/my-integrations">Notion Integrations</a> 页面创建并获取</span>
+          </div>
+          <div class="form-group">
+            <label for="notionDbId">Database ID</label>
+            <input type="text" id="notionDbId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+            <span class="help-text">从 Notion 数据库链接中获取</span>
+          </div>
+        </div>
+
+        <!-- LLM 配置 -->
+        <div class="config-card">
+          <div class="card-header">
+            <h3>LLM 服务配置 <span class="badge required">至少配置一个</span></h3>
+            <button class="btn btn-sm btn-secondary test-btn" data-service="llm">测试连接</button>
+          </div>
+
+          <div class="subsection">
+            <h4>Kimi (Moonshot)</h4>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="kimiApiKey">API Key</label>
+                <div class="password-input-wrapper">
+                  <input type="password" id="kimiApiKey" placeholder="sk-xxxxxxxxxx">
+                  <button type="button" class="password-toggle" data-target="kimiApiKey">👁</button>
+                </div>
+              </div>
+              <div class="form-group flex-1">
+                <label for="kimiUrl">API URL</label>
+                <input type="text" id="kimiUrl" value="https://api.moonshot.cn/v1">
+              </div>
+            </div>
+          </div>
+
+          <div class="subsection">
+            <h4>DeepSeek</h4>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="deepseekApiKey">API Key</label>
+                <div class="password-input-wrapper">
+                  <input type="password" id="deepseekApiKey" placeholder="sk-xxxxxxxxxx">
+                  <button type="button" class="password-toggle" data-target="deepseekApiKey">👁</button>
+                </div>
+              </div>
+              <div class="form-group flex-1">
+                <label for="deepseekUrl">API URL</label>
+                <input type="text" id="deepseekUrl" value="https://api.deepseek.com">
+              </div>
+            </div>
+          </div>
+
+          <div class="subsection">
+            <h4>自定义 LLM</h4>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="defaultApiKey">API Key</label>
+                <div class="password-input-wrapper">
+                  <input type="password" id="defaultApiKey" placeholder="API Key">
+                  <button type="button" class="password-toggle" data-target="defaultApiKey">👁</button>
+                </div>
+              </div>
+              <div class="form-group flex-1">
+                <label for="defaultBaseUrl">Base URL</label>
+                <input type="text" id="defaultBaseUrl" placeholder="https://api.example.com/v1">
+              </div>
+              <div class="form-group flex-1">
+                <label for="defaultModelName">Model Name</label>
+                <input type="text" id="defaultModelName" placeholder="gpt-4">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Zotero 配置 -->
+        <div class="config-card">
+          <div class="card-header">
+            <h3>Zotero 配置 <span class="badge optional">可选</span></h3>
+            <button class="btn btn-sm btn-secondary test-btn" data-service="zotero">测试连接</button>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="zoteroApiKey">API Key</label>
+              <div class="password-input-wrapper">
+                <input type="password" id="zoteroApiKey" placeholder="Zotero API Key">
+                <button type="button" class="password-toggle" data-target="zoteroApiKey">👁</button>
+              </div>
+              <span class="help-text">在 <a href="#" class="link" data-url="https://www.zotero.org/settings/keys">Zotero API Keys</a> 页面获取</span>
+            </div>
+            <div class="form-group flex-1">
+              <label for="zoteroUserId">User ID</label>
+              <input type="text" id="zoteroUserId" placeholder="用户 ID">
+            </div>
+            <div class="form-group flex-1">
+              <label for="zoteroGroupId">Group ID (可选)</label>
+              <input type="text" id="zoteroGroupId" placeholder="群组 ID">
+            </div>
+          </div>
+        </div>
+
+        <!-- Wolai 配置 -->
+        <div class="config-card">
+          <div class="card-header">
+            <h3>我来 (Wolai) 配置 <span class="badge optional">可选</span></h3>
+            <button class="btn btn-sm btn-secondary test-btn" data-service="wolai">测试连接</button>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="wolaiToken">Token</label>
+              <div class="password-input-wrapper">
+                <input type="password" id="wolaiToken" placeholder="Wolai API Token">
+                <button type="button" class="password-toggle" data-target="wolaiToken">👁</button>
+              </div>
+            </div>
+            <div class="form-group flex-1">
+              <label for="wolaiDbId">Database ID</label>
+              <input type="text" id="wolaiDbId" placeholder="数据库 ID">
+            </div>
+          </div>
+        </div>
+
+        <!-- Slack 配置 -->
+        <div class="config-card">
+          <h3>Slack 通知 <span class="badge optional">可选</span></h3>
+          <div class="form-group">
+            <label for="slackApiKey">Slack API Key</label>
+            <div class="password-input-wrapper">
+              <input type="password" id="slackApiKey" placeholder="xoxb-xxxxxxxxxx">
+              <button type="button" class="password-toggle" data-target="slackApiKey">👁</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 代理配置 -->
+        <div class="config-card">
+          <h3>网络代理 <span class="badge optional">可选</span></h3>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="httpProxy">HTTP Proxy</label>
+              <input type="text" id="httpProxy" placeholder="http://127.0.0.1:7890">
+            </div>
+            <div class="form-group flex-1">
+              <label for="httpsProxy">HTTPS Proxy</label>
+              <input type="text" id="httpsProxy" placeholder="http://127.0.0.1:7890">
+            </div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" id="saveEnvConfig">保存配置</button>
+          <button class="btn btn-secondary" id="exportConfig">导出配置</button>
+          <button class="btn btn-secondary" id="importConfig">导入配置</button>
+        </div>
+      </section>
+
+      <!-- 搜索配置 -->
+      <section class="tab-content" id="search-config">
+        <h2>搜索配置</h2>
+        <p class="section-desc">设置论文搜索的关键词和筛选条件</p>
+
+        <div class="config-card">
+          <h3>关键词设置</h3>
+          <p class="help-text">每行一个关键词，同一行多个关键词用逗号分隔表示 OR 逻辑</p>
+          <div class="form-group">
+            <label for="keywords">搜索关键词</label>
+            <textarea id="keywords" rows="6" placeholder="例如：
+reinforcement learning
+LLM, large language model
+diffusion model"></textarea>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>ArXiv 分类</h3>
+          <div class="category-grid" id="categoryGrid">
+            <!-- 分类选项将动态生成 -->
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>搜索限制</h3>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="searchLimit">每次最多论文数</label>
+              <input type="number" id="searchLimit" value="10" min="1" max="100">
+            </div>
+            <div class="form-group flex-1">
+              <label for="retries">失败重试次数</label>
+              <input type="number" id="retries" value="3" min="1" max="10">
+            </div>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>PDF 下载设置</h3>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="downloadPdf" checked>
+              <span>启用 PDF 下载</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="pdfDir">PDF 保存目录</label>
+            <div class="input-with-button">
+              <input type="text" id="pdfDir" value="papers">
+              <button class="btn btn-secondary" id="selectPdfDir">选择目录</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" id="saveSearchConfig">保存配置</button>
+        </div>
+      </section>
+
+      <!-- 服务设置 -->
+      <section class="tab-content" id="services">
+        <h2>服务设置</h2>
+        <p class="section-desc">启用或禁用各个集成服务</p>
+
+        <div class="config-card">
+          <h3>论文来源</h3>
+          <div class="service-list">
+            <label class="service-item">
+              <input type="checkbox" id="enableArxiv" checked>
+              <div class="service-info">
+                <span class="service-name">ArXiv</span>
+                <span class="service-desc">从 ArXiv 获取论文</span>
+              </div>
+            </label>
+            <label class="service-item">
+              <input type="checkbox" id="enableHf" checked>
+              <div class="service-info">
+                <span class="service-name">HuggingFace Daily Papers</span>
+                <span class="service-desc">从 HuggingFace 获取每日推荐论文</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>同步目标</h3>
+          <div class="service-list">
+            <label class="service-item">
+              <input type="checkbox" id="enableNotion" checked>
+              <div class="service-info">
+                <span class="service-name">Notion</span>
+                <span class="service-desc">同步论文到 Notion 数据库</span>
+              </div>
+            </label>
+            <label class="service-item">
+              <input type="checkbox" id="enableZotero">
+              <div class="service-info">
+                <span class="service-name">Zotero</span>
+                <span class="service-desc">同步论文到 Zotero 文献库</span>
+              </div>
+            </label>
+            <label class="service-item">
+              <input type="checkbox" id="enableWolai">
+              <div class="service-info">
+                <span class="service-name">我来 (Wolai)</span>
+                <span class="service-desc">同步论文到我来知识库</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="config-card" id="zoteroCategories" style="display: none;">
+          <h3>Zotero 分类映射</h3>
+          <p class="help-text">将论文标签映射到 Zotero 分类 ID</p>
+          <div id="categoryMapContainer">
+            <!-- 动态生成 -->
+          </div>
+          <button class="btn btn-secondary btn-sm" id="addCategoryMap">+ 添加映射</button>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" id="saveServiceConfig">保存配置</button>
+        </div>
+      </section>
+
+      <!-- 运行 -->
+      <section class="tab-content" id="run">
+        <h2>运行任务</h2>
+        <p class="section-desc">启动论文抓取和处理任务</p>
+
+        <div class="config-card">
+          <h3>运行选项</h3>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="runDate">指定日期 (可选)</label>
+              <input type="date" id="runDate">
+            </div>
+            <div class="form-group flex-1">
+              <label for="runDays">处理天数</label>
+              <input type="number" id="runDays" value="1" min="1" max="30">
+            </div>
+            <div class="form-group flex-1">
+              <label for="runLimit">论文数量限制</label>
+              <input type="number" id="runLimit" value="10" min="1" max="100">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="runDownloadPdf" checked>
+                <span>下载 PDF</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="runNoArxiv">
+                <span>跳过 ArXiv</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="runNoHf">
+                <span>跳过 HuggingFace</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary btn-lg" id="startRun">
+            <span class="btn-icon">▶️</span>
+            开始运行
+          </button>
+          <button class="btn btn-danger btn-lg" id="stopRun" disabled>
+            <span class="btn-icon">⏹️</span>
+            停止
+          </button>
+        </div>
+
+        <div class="config-card">
+          <h3>实时日志</h3>
+          <div class="log-container" id="realtimeLog">
+            <div class="log-placeholder">点击"开始运行"后，日志将在此显示...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 定时任务 -->
+      <section class="tab-content" id="scheduler">
+        <h2>定时任务</h2>
+        <p class="section-desc">配置自动运行计划</p>
+
+        <div class="config-card">
+          <h3>定时任务开关</h3>
+          <div class="service-list">
+            <label class="service-item">
+              <input type="checkbox" id="enableScheduler">
+              <div class="service-info">
+                <span class="service-name">启用定时任务</span>
+                <span class="service-desc">按设定时间自动运行论文抓取</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>运行计划</h3>
+          <div class="form-group">
+            <label>运行频率</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" name="scheduleType" value="daily" checked>
+                <span>每天</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="scheduleType" value="weekly">
+                <span>每周</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="scheduleType" value="interval">
+                <span>固定间隔</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 每天配置 -->
+          <div class="schedule-options" id="dailyOptions">
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="dailyTime">运行时间</label>
+                <input type="time" id="dailyTime" value="08:00">
+              </div>
+            </div>
+          </div>
+
+          <!-- 每周配置 -->
+          <div class="schedule-options" id="weeklyOptions" style="display: none;">
+            <div class="form-group">
+              <label>选择星期</label>
+              <div class="weekday-grid">
+                <label class="weekday-item">
+                  <input type="checkbox" value="1"> <span>周一</span>
+                </label>
+                <label class="weekday-item">
+                  <input type="checkbox" value="2"> <span>周二</span>
+                </label>
+                <label class="weekday-item">
+                  <input type="checkbox" value="3"> <span>周三</span>
+                </label>
+                <label class="weekday-item">
+                  <input type="checkbox" value="4"> <span>周四</span>
+                </label>
+                <label class="weekday-item">
+                  <input type="checkbox" value="5"> <span>周五</span>
+                </label>
+                <label class="weekday-item">
+                  <input type="checkbox" value="6"> <span>周六</span>
+                </label>
+                <label class="weekday-item">
+                  <input type="checkbox" value="0"> <span>周日</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="weeklyTime">运行时间</label>
+              <input type="time" id="weeklyTime" value="08:00">
+            </div>
+          </div>
+
+          <!-- 固定间隔配置 -->
+          <div class="schedule-options" id="intervalOptions" style="display: none;">
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="intervalValue">间隔</label>
+                <input type="number" id="intervalValue" value="6" min="1" max="24">
+              </div>
+              <div class="form-group flex-1">
+                <label for="intervalUnit">单位</label>
+                <select id="intervalUnit">
+                  <option value="hours">小时</option>
+                  <option value="minutes">分钟</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>任务设置</h3>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="scheduleDays">处理天数</label>
+              <input type="number" id="scheduleDays" value="1" min="1" max="7">
+            </div>
+            <div class="form-group flex-1">
+              <label for="scheduleLimit">论文数量限制</label>
+              <input type="number" id="scheduleLimit" value="20" min="1" max="100">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="scheduleDownloadPdf" checked>
+              <span>下载 PDF</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="scheduleNotify" checked>
+              <span>任务完成后发送通知</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>系统设置</h3>
+          <div class="service-list">
+            <label class="service-item">
+              <input type="checkbox" id="autoStart">
+              <div class="service-info">
+                <span class="service-name">开机自启动</span>
+                <span class="service-desc">系统启动时自动运行 Paper Flow</span>
+              </div>
+            </label>
+            <label class="service-item">
+              <input type="checkbox" id="runInBackground">
+              <div class="service-info">
+                <span class="service-name">后台运行</span>
+                <span class="service-desc">关闭窗口时最小化到系统托盘</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <h3>任务状态</h3>
+          <div class="scheduler-status">
+            <div class="status-row">
+              <span class="status-label">当前状态：</span>
+              <span class="status-value" id="schedulerStatus">未启用</span>
+            </div>
+            <div class="status-row">
+              <span class="status-label">下次运行：</span>
+              <span class="status-value" id="nextRunTime">-</span>
+            </div>
+            <div class="status-row">
+              <span class="status-label">上次运行：</span>
+              <span class="status-value" id="lastRunTime">-</span>
+            </div>
+            <div class="status-row">
+              <span class="status-label">上次结果：</span>
+              <span class="status-value" id="lastRunResult">-</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" id="saveSchedulerConfig">保存配置</button>
+          <button class="btn btn-secondary" id="runSchedulerNow">立即运行一次</button>
+        </div>
+      </section>
+
+      <!-- 论文管理 -->
+      <section class="tab-content" id="papers">
+        <h2>论文管理</h2>
+        <p class="section-desc">查看和管理已处理的论文</p>
+
+        <!-- 统计卡片 -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="totalPapers">0</div>
+            <div class="stat-label">总论文数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="todayPapers">0</div>
+            <div class="stat-label">今日新增</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="weekPapers">0</div>
+            <div class="stat-label">本周新增</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="categoriesCount">0</div>
+            <div class="stat-label">分类数</div>
+          </div>
+        </div>
+
+        <!-- 搜索和筛选 -->
+        <div class="config-card">
+          <div class="paper-filters">
+            <div class="form-row">
+              <div class="form-group flex-2">
+                <input type="text" id="paperSearch" placeholder="搜索论文标题、作者、摘要...">
+              </div>
+              <div class="form-group flex-1">
+                <select id="paperCategoryFilter">
+                  <option value="">全部分类</option>
+                </select>
+              </div>
+              <div class="form-group flex-1">
+                <select id="paperDateFilter">
+                  <option value="">全部时间</option>
+                  <option value="today">今天</option>
+                  <option value="week">本周</option>
+                  <option value="month">本月</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <button class="btn btn-secondary" id="refreshPapers">刷新</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 论文列表 -->
+        <div class="config-card paper-list-container">
+          <div class="paper-list" id="paperList">
+            <div class="paper-placeholder">正在加载论文列表...</div>
+          </div>
+          <div class="pagination" id="pagination">
+            <!-- 分页控件 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 日志 -->
+      <section class="tab-content" id="logs">
+        <h2 data-i18n="logs.title">历史日志</h2>
+        <p class="section-desc" data-i18n="logs.desc">查看历史运行日志和运行记录</p>
+
+        <!-- 运行历史 -->
+        <div class="config-card">
+          <div class="card-header">
+            <h3 data-i18n="logs.runHistory">运行历史</h3>
+            <button class="btn btn-sm btn-secondary" id="clearHistory" data-i18n="logs.clearHistory">清空历史</button>
+          </div>
+          <div class="history-list" id="historyList">
+            <div class="paper-placeholder" data-i18n="logs.noHistory">暂无运行记录</div>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="logDate" data-i18n="logs.selectDate">选择日期</label>
+              <input type="date" id="logDate">
+            </div>
+            <div class="form-group">
+              <button class="btn btn-secondary" id="loadLog" data-i18n="logs.loadLog">加载日志</button>
+            </div>
+            <div class="form-group">
+              <button class="btn btn-secondary" id="exportLog" data-i18n="logs.exportLog">导出日志</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <div class="log-container" id="historyLog">
+            <div class="log-placeholder" data-i18n="logs.logPlaceholder">选择日期后，日志将在此显示...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 高级设置 -->
+      <section class="tab-content" id="advanced">
+        <h2 data-i18n="advanced.title">高级设置</h2>
+        <p class="section-desc" data-i18n="advanced.desc">自定义 Prompt 模板、Webhook 通知等高级功能</p>
+
+        <!-- LLM Prompt 模板 -->
+        <div class="config-card">
+          <h3 data-i18n="advanced.promptTemplates">LLM Prompt 模板</h3>
+          <p class="help-text" data-i18n="advanced.promptHelp">自定义 LLM 分析论文时使用的 Prompt 模板</p>
+          <div class="template-editor">
+            <div class="template-list">
+              <span class="template-tag active" data-template="summary" data-i18n="advanced.templateSummary">摘要生成</span>
+              <span class="template-tag" data-template="translation" data-i18n="advanced.templateTranslation">标题翻译</span>
+              <span class="template-tag" data-template="keywords" data-i18n="advanced.templateKeywords">关键词提取</span>
+            </div>
+            <div class="template-content">
+              <textarea id="promptTemplate" rows="8" placeholder="输入 Prompt 模板..."></textarea>
+            </div>
+            <div class="template-variables">
+              <span class="help-text" data-i18n="advanced.availableVars">可用变量：</span>
+              <span class="variable-tag" data-var="{title}">{title}</span>
+              <span class="variable-tag" data-var="{abstract}">{abstract}</span>
+              <span class="variable-tag" data-var="{authors}">{authors}</span>
+              <span class="variable-tag" data-var="{categories}">{categories}</span>
+            </div>
+          </div>
+          <div class="action-bar">
+            <button class="btn btn-primary" id="savePromptTemplate" data-i18n="advanced.saveTemplate">保存模板</button>
+            <button class="btn btn-secondary" id="resetPromptTemplate" data-i18n="advanced.resetTemplate">恢复默认</button>
+          </div>
+        </div>
+
+        <!-- Webhook 通知 -->
+        <div class="config-card">
+          <div class="card-header">
+            <h3 data-i18n="advanced.webhookTitle">Webhook 通知</h3>
+            <button class="btn btn-sm btn-secondary" id="addWebhook" data-i18n="advanced.addWebhook">+ 添加</button>
+          </div>
+          <p class="help-text" data-i18n="advanced.webhookHelp">配置 Webhook URL 接收任务完成通知</p>
+          <div class="webhook-list" id="webhookList">
+            <!-- 动态生成 -->
+          </div>
+          <div class="action-bar">
+            <button class="btn btn-primary" id="saveWebhooks" data-i18n="advanced.saveWebhooks">保存 Webhook 配置</button>
+            <button class="btn btn-secondary" id="testWebhook" data-i18n="advanced.testWebhook">发送测试通知</button>
+          </div>
+        </div>
+
+        <!-- 自动更新 -->
+        <div class="config-card">
+          <h3 data-i18n="advanced.updateTitle">软件更新</h3>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <div class="service-list">
+                <label class="service-item">
+                  <input type="checkbox" id="autoCheckUpdate" checked>
+                  <div class="service-info">
+                    <span class="service-name" data-i18n="advanced.autoUpdate">自动检查更新</span>
+                    <span class="service-desc" data-i18n="advanced.autoUpdateDesc">启动时自动检查新版本</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="action-bar">
+            <button class="btn btn-secondary" id="checkUpdate" data-i18n="advanced.checkNow">立即检查更新</button>
+            <span class="help-text" id="currentVersion">当前版本: v1.0.0</span>
+          </div>
+        </div>
+
+        <!-- 快捷键设置 -->
+        <div class="config-card">
+          <h3 data-i18n="advanced.shortcuts">快捷键</h3>
+          <p class="help-text" data-i18n="advanced.shortcutsHelp">按 ? 键可随时查看快捷键列表</p>
+          <div class="shortcut-list" style="padding: 16px; background: var(--bg-color); border-radius: var(--radius);">
+            <div class="shortcut-item">
+              <span data-i18n="shortcuts.run">开始运行</span>
+              <span class="shortcut-key">Ctrl/Cmd + R</span>
+            </div>
+            <div class="shortcut-item">
+              <span data-i18n="shortcuts.stop">停止任务</span>
+              <span class="shortcut-key">Ctrl/Cmd + S</span>
+            </div>
+            <div class="shortcut-item">
+              <span data-i18n="shortcuts.save">保存配置</span>
+              <span class="shortcut-key">Ctrl/Cmd + Shift + S</span>
+            </div>
+            <div class="shortcut-item">
+              <span data-i18n="shortcuts.theme">切换主题</span>
+              <span class="shortcut-key">Ctrl/Cmd + T</span>
+            </div>
+            <div class="shortcut-item">
+              <span data-i18n="shortcuts.help">显示快捷键</span>
+              <span class="shortcut-key">?</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 更新提示 Banner -->
+  <div class="update-banner" id="updateBanner">
+    <div class="update-banner-text">
+      <span>🎉</span>
+      <span id="updateMessage" data-i18n="update.available">发现新版本可用！</span>
+    </div>
+    <div class="update-banner-actions">
+      <button class="btn btn-sm" id="dismissUpdate" data-i18n="update.later">稍后提醒</button>
+      <button class="btn btn-sm btn-primary" id="downloadUpdate" data-i18n="update.download">立即更新</button>
+    </div>
+  </div>
+
+  <!-- 快捷键提示 -->
+  <div class="shortcut-hint" id="shortcutHint">
+    <div class="shortcut-list">
+      <div class="shortcut-item">
+        <span data-i18n="shortcuts.run">开始运行</span>
+        <span class="shortcut-key">Ctrl/Cmd + R</span>
+      </div>
+      <div class="shortcut-item">
+        <span data-i18n="shortcuts.stop">停止任务</span>
+        <span class="shortcut-key">Ctrl/Cmd + S</span>
+      </div>
+      <div class="shortcut-item">
+        <span data-i18n="shortcuts.theme">切换主题</span>
+        <span class="shortcut-key">Ctrl/Cmd + T</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新手引导向导 Modal -->
+  <div class="modal-overlay" id="wizardModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 data-i18n="wizard.title">欢迎使用 Paper Flow</h3>
+        <button class="modal-close" id="closeWizard">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="wizard-steps">
+          <div class="wizard-step active" data-step="1"></div>
+          <div class="wizard-step" data-step="2"></div>
+          <div class="wizard-step" data-step="3"></div>
+          <div class="wizard-step" data-step="4"></div>
+        </div>
+        <div class="wizard-content" id="wizardContent">
+          <!-- 动态内容 -->
+        </div>
+      </div>
+      <div class="modal-footer wizard-nav">
+        <button class="btn btn-secondary" id="wizardPrev" data-i18n="wizard.prev">上一步</button>
+        <button class="btn btn-primary" id="wizardNext" data-i18n="wizard.next">下一步</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
