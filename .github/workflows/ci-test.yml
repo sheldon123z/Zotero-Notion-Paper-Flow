@@ -181,7 +181,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: 上传 HTML 覆盖率报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-report-html
           path: htmlcov/
@@ -238,7 +238,7 @@ jobs:
           echo "构建验证完成"
 
       - name: 上传构建产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: matrix.python-version == '3.11'
         with:
           name: python-package-distributions
@@ -274,7 +274,7 @@ jobs:
           bandit -r src/ -f txt || true
 
       - name: 上传安全扫描报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: security-reports
           path: bandit-report.json
