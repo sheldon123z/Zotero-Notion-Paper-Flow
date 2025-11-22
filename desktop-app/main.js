@@ -867,6 +867,251 @@ ipcMain.handle('import-config', async () => {
   }
 });
 
+// ==================== 运行历史 ====================
+
+ipcMain.handle('get-run-history', async () => {
+  return store.get('runHistory', []);
+});
+
+ipcMain.handle('save-run-history', async (event, history) => {
+  store.set('runHistory', history.slice(0, 100)); // 最多保存 100 条
+  return { success: true };
+});
+
+ipcMain.handle('clear-run-history', async () => {
+  store.set('runHistory', []);
+  return { success: true };
+});
+
+// ==================== 日志导出 ====================
+
+ipcMain.handle('export-log', async (event, data) => {
+  try {
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: '导出日志',
+      defaultPath: data.filename || `paper-flow-log-${new Date().toISOString().slice(0, 10)}.txt`,
+      filters: [
+        { name: '文本文件', extensions: ['txt'] },
+        { name: '所有文件', extensions: ['*'] }
+      ]
+    });
+
+    if (!result.canceled && result.filePath) {
+      fs.writeFileSync(result.filePath, data.content, 'utf-8');
+      return { success: true };
+    }
+
+    return { success: false, canceled: true };
+  } catch (error) {
+    console.error('导出日志失败:', error);
+    return { success: false, message: error.message };
+  }
+});
+
+// ==================== Prompt 模板 ====================
+
+ipcMain.handle('get-prompt-templates', async () => {
+  return store.get('promptTemplates', null);
+});
+
+ipcMain.handle('save-prompt-templates', async (event, templates) => {
+  store.set('promptTemplates', templates);
+  return { success: true };
+});
+
+// ==================== Webhook 配置 ====================
+
+ipcMain.handle('get-webhooks', async () => {
+  return store.get('webhooks', []);
+});
+
+ipcMain.handle('save-webhooks', async (event, webhooks) => {
+  store.set('webhooks', webhooks);
+  return { success: true };
+});
+
+ipcMain.handle('test-webhook', async (event, url) => {
+  const https = require('https');
+  const http = require('http');
+
+  return new Promise((resolve) => {
+    try {
+      const urlObj = new URL(url);
+      const protocol = urlObj.protocol === 'https:' ? https : http;
+
+      const postData = JSON.stringify({
+        event: 'test',
+        message: 'Paper Flow 测试通知',
+        timestamp: new Date().toISOString()
+      });
+
+      const options = {
+        hostname: urlObj.hostname,
+        port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
+        path: urlObj.pathname + urlObj.search,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        },
+        timeout: 10000
+      };
+
+      const req = protocol.request(options, (res) => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve({ success: true });
+        } else {
+          resolve({ success: false, message: `HTTP ${res.statusCode}` });
+        }
+      });
+
+      req.on('error', (e) => {
+        resolve({ success: false, message: e.message });
+      });
+
+      req.on('timeout', () => {
+        req.destroy();
+        resolve({ success: false, message: '连接超时' });
+      });
+
+      req.write(postData);
+      req.end();
+    } catch (error) {
+      resolve({ success: false, message: error.message });
+    }
+  });
+});
+
+// 发送 Webhook 通知
+async function sendWebhookNotification(event, data) {
+  const webhooks = store.get('webhooks', []);
+
+  for (const webhook of webhooks) {
+    if (!webhook.url || !webhook.events?.includes(event)) {
+      continue;
+    }
+
+    try {
+      const https = require('https');
+      const http = require('http');
+      const urlObj = new URL(webhook.url);
+      const protocol = urlObj.protocol === 'https:' ? https : http;
+
+      const postData = JSON.stringify({
+        event,
+        ...data,
+        timestamp: new Date().toISOString()
+      });
+
+      const options = {
+        hostname: urlObj.hostname,
+        port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
+        path: urlObj.pathname + urlObj.search,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        },
+        timeout: 10000
+      };
+
+      const req = protocol.request(options);
+      req.write(postData);
+      req.end();
+    } catch (error) {
+      console.error('发送 Webhook 通知失败:', error);
+    }
+  }
+}
+
+// ==================== 自动更新 ====================
+
+const APP_VERSION = '1.0.0';
+const UPDATE_CHECK_URL = 'https://api.github.com/repos/sheldon123z/Zotero-Notion-Paper-Flow/releases/latest';
+
+ipcMain.handle('get-app-version', async () => {
+  return APP_VERSION;
+});
+
+ipcMain.handle('check-for-updates', async () => {
+  const https = require('https');
+
+  return new Promise((resolve) => {
+    const options = {
+      hostname: 'api.github.com',
+      path: '/repos/sheldon123z/Zotero-Notion-Paper-Flow/releases/latest',
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Paper-Flow-Desktop',
+        'Accept': 'application/vnd.github.v3+json'
+      },
+      timeout: 10000
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      res.on('end', () => {
+        try {
+          if (res.statusCode === 200) {
+            const release = JSON.parse(data);
+            const latestVersion = release.tag_name.replace('v', '');
+            const hasUpdate = compareVersions(latestVersion, APP_VERSION) > 0;
+
+            resolve({
+              hasUpdate,
+              version: latestVersion,
+              downloadUrl: release.html_url,
+              releaseNotes: release.body
+            });
+          } else {
+            resolve({ hasUpdate: false });
+          }
+        } catch (error) {
+          resolve({ hasUpdate: false, error: error.message });
+        }
+      });
+    });
+
+    req.on('error', (e) => {
+      resolve({ hasUpdate: false, error: e.message });
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ hasUpdate: false, error: '连接超时' });
+    });
+
+    req.end();
+  });
+});
+
+ipcMain.handle('download-update', async () => {
+  // 打开 GitHub releases 页面
+  shell.openExternal('https://github.com/sheldon123z/Zotero-Notion-Paper-Flow/releases/latest');
+  return { success: true };
+});
+
+// 版本比较函数
+function compareVersions(v1, v2) {
+  const parts1 = v1.split('.').map(Number);
+  const parts2 = v2.split('.').map(Number);
+
+  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+    const p1 = parts1[i] || 0;
+    const p2 = parts2[i] || 0;
+
+    if (p1 > p2) return 1;
+    if (p1 < p2) return -1;
+  }
+
+  return 0;
+}
+
 // 应用启动时恢复定时任务
 app.whenReady().then(() => {
   createWindow();

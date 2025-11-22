@@ -42,13 +42,28 @@
         </button>
         <button class="nav-item" data-tab="logs">
           <span class="nav-icon">📋</span>
-          <span>日志</span>
+          <span data-i18n="nav.logs">日志</span>
+        </button>
+        <button class="nav-item" data-tab="advanced">
+          <span class="nav-icon">🔧</span>
+          <span data-i18n="nav.advanced">高级设置</span>
         </button>
       </nav>
       <div class="sidebar-footer">
-        <div class="status-indicator">
+        <!-- 语言切换 -->
+        <div class="lang-select" style="margin-bottom: 12px;">
+          <button class="lang-btn active" data-lang="zh">中文</button>
+          <button class="lang-btn" data-lang="en">EN</button>
+        </div>
+        <!-- 主题切换 -->
+        <button class="theme-toggle" id="themeToggle">
+          <span class="theme-icon">🌙</span>
+          <span data-i18n="darkMode">深色模式</span>
+        </button>
+        <!-- 状态指示 -->
+        <div class="status-indicator" style="margin-top: 12px;">
           <span class="status-dot" id="statusDot"></span>
-          <span id="statusText">就绪</span>
+          <span id="statusText" data-i18n="ready">就绪</span>
         </div>
       </div>
     </aside>
@@ -653,28 +668,196 @@ diffusion model"></textarea>
 
       <!-- 日志 -->
       <section class="tab-content" id="logs">
-        <h2>历史日志</h2>
-        <p class="section-desc">查看历史运行日志</p>
+        <h2 data-i18n="logs.title">历史日志</h2>
+        <p class="section-desc" data-i18n="logs.desc">查看历史运行日志和运行记录</p>
+
+        <!-- 运行历史 -->
+        <div class="config-card">
+          <div class="card-header">
+            <h3 data-i18n="logs.runHistory">运行历史</h3>
+            <button class="btn btn-sm btn-secondary" id="clearHistory" data-i18n="logs.clearHistory">清空历史</button>
+          </div>
+          <div class="history-list" id="historyList">
+            <div class="paper-placeholder" data-i18n="logs.noHistory">暂无运行记录</div>
+          </div>
+        </div>
 
         <div class="config-card">
           <div class="form-row">
             <div class="form-group flex-1">
-              <label for="logDate">选择日期</label>
+              <label for="logDate" data-i18n="logs.selectDate">选择日期</label>
               <input type="date" id="logDate">
             </div>
             <div class="form-group">
-              <button class="btn btn-secondary" id="loadLog">加载日志</button>
+              <button class="btn btn-secondary" id="loadLog" data-i18n="logs.loadLog">加载日志</button>
+            </div>
+            <div class="form-group">
+              <button class="btn btn-secondary" id="exportLog" data-i18n="logs.exportLog">导出日志</button>
             </div>
           </div>
         </div>
 
         <div class="config-card">
           <div class="log-container" id="historyLog">
-            <div class="log-placeholder">选择日期后，日志将在此显示...</div>
+            <div class="log-placeholder" data-i18n="logs.logPlaceholder">选择日期后，日志将在此显示...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 高级设置 -->
+      <section class="tab-content" id="advanced">
+        <h2 data-i18n="advanced.title">高级设置</h2>
+        <p class="section-desc" data-i18n="advanced.desc">自定义 Prompt 模板、Webhook 通知等高级功能</p>
+
+        <!-- LLM Prompt 模板 -->
+        <div class="config-card">
+          <h3 data-i18n="advanced.promptTemplates">LLM Prompt 模板</h3>
+          <p class="help-text" data-i18n="advanced.promptHelp">自定义 LLM 分析论文时使用的 Prompt 模板</p>
+          <div class="template-editor">
+            <div class="template-list">
+              <span class="template-tag active" data-template="summary" data-i18n="advanced.templateSummary">摘要生成</span>
+              <span class="template-tag" data-template="translation" data-i18n="advanced.templateTranslation">标题翻译</span>
+              <span class="template-tag" data-template="keywords" data-i18n="advanced.templateKeywords">关键词提取</span>
+            </div>
+            <div class="template-content">
+              <textarea id="promptTemplate" rows="8" placeholder="输入 Prompt 模板..."></textarea>
+            </div>
+            <div class="template-variables">
+              <span class="help-text" data-i18n="advanced.availableVars">可用变量：</span>
+              <span class="variable-tag" data-var="{title}">{title}</span>
+              <span class="variable-tag" data-var="{abstract}">{abstract}</span>
+              <span class="variable-tag" data-var="{authors}">{authors}</span>
+              <span class="variable-tag" data-var="{categories}">{categories}</span>
+            </div>
+          </div>
+          <div class="action-bar">
+            <button class="btn btn-primary" id="savePromptTemplate" data-i18n="advanced.saveTemplate">保存模板</button>
+            <button class="btn btn-secondary" id="resetPromptTemplate" data-i18n="advanced.resetTemplate">恢复默认</button>
+          </div>
+        </div>
+
+        <!-- Webhook 通知 -->
+        <div class="config-card">
+          <div class="card-header">
+            <h3 data-i18n="advanced.webhookTitle">Webhook 通知</h3>
+            <button class="btn btn-sm btn-secondary" id="addWebhook" data-i18n="advanced.addWebhook">+ 添加</button>
+          </div>
+          <p class="help-text" data-i18n="advanced.webhookHelp">配置 Webhook URL 接收任务完成通知</p>
+          <div class="webhook-list" id="webhookList">
+            <!-- 动态生成 -->
+          </div>
+          <div class="action-bar">
+            <button class="btn btn-primary" id="saveWebhooks" data-i18n="advanced.saveWebhooks">保存 Webhook 配置</button>
+            <button class="btn btn-secondary" id="testWebhook" data-i18n="advanced.testWebhook">发送测试通知</button>
+          </div>
+        </div>
+
+        <!-- 自动更新 -->
+        <div class="config-card">
+          <h3 data-i18n="advanced.updateTitle">软件更新</h3>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <div class="service-list">
+                <label class="service-item">
+                  <input type="checkbox" id="autoCheckUpdate" checked>
+                  <div class="service-info">
+                    <span class="service-name" data-i18n="advanced.autoUpdate">自动检查更新</span>
+                    <span class="service-desc" data-i18n="advanced.autoUpdateDesc">启动时自动检查新版本</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="action-bar">
+            <button class="btn btn-secondary" id="checkUpdate" data-i18n="advanced.checkNow">立即检查更新</button>
+            <span class="help-text" id="currentVersion">当前版本: v1.0.0</span>
+          </div>
+        </div>
+
+        <!-- 快捷键设置 -->
+        <div class="config-card">
+          <h3 data-i18n="advanced.shortcuts">快捷键</h3>
+          <p class="help-text" data-i18n="advanced.shortcutsHelp">按 ? 键可随时查看快捷键列表</p>
+          <div class="shortcut-list" style="padding: 16px; background: var(--bg-color); border-radius: var(--radius);">
+            <div class="shortcut-item">
+              <span data-i18n="shortcuts.run">开始运行</span>
+              <span class="shortcut-key">Ctrl/Cmd + R</span>
+            </div>
+            <div class="shortcut-item">
+              <span data-i18n="shortcuts.stop">停止任务</span>
+              <span class="shortcut-key">Ctrl/Cmd + S</span>
+            </div>
+            <div class="shortcut-item">
+              <span data-i18n="shortcuts.save">保存配置</span>
+              <span class="shortcut-key">Ctrl/Cmd + Shift + S</span>
+            </div>
+            <div class="shortcut-item">
+              <span data-i18n="shortcuts.theme">切换主题</span>
+              <span class="shortcut-key">Ctrl/Cmd + T</span>
+            </div>
+            <div class="shortcut-item">
+              <span data-i18n="shortcuts.help">显示快捷键</span>
+              <span class="shortcut-key">?</span>
+            </div>
           </div>
         </div>
       </section>
     </main>
+  </div>
+
+  <!-- 更新提示 Banner -->
+  <div class="update-banner" id="updateBanner">
+    <div class="update-banner-text">
+      <span>🎉</span>
+      <span id="updateMessage" data-i18n="update.available">发现新版本可用！</span>
+    </div>
+    <div class="update-banner-actions">
+      <button class="btn btn-sm" id="dismissUpdate" data-i18n="update.later">稍后提醒</button>
+      <button class="btn btn-sm btn-primary" id="downloadUpdate" data-i18n="update.download">立即更新</button>
+    </div>
+  </div>
+
+  <!-- 快捷键提示 -->
+  <div class="shortcut-hint" id="shortcutHint">
+    <div class="shortcut-list">
+      <div class="shortcut-item">
+        <span data-i18n="shortcuts.run">开始运行</span>
+        <span class="shortcut-key">Ctrl/Cmd + R</span>
+      </div>
+      <div class="shortcut-item">
+        <span data-i18n="shortcuts.stop">停止任务</span>
+        <span class="shortcut-key">Ctrl/Cmd + S</span>
+      </div>
+      <div class="shortcut-item">
+        <span data-i18n="shortcuts.theme">切换主题</span>
+        <span class="shortcut-key">Ctrl/Cmd + T</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新手引导向导 Modal -->
+  <div class="modal-overlay" id="wizardModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 data-i18n="wizard.title">欢迎使用 Paper Flow</h3>
+        <button class="modal-close" id="closeWizard">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="wizard-steps">
+          <div class="wizard-step active" data-step="1"></div>
+          <div class="wizard-step" data-step="2"></div>
+          <div class="wizard-step" data-step="3"></div>
+          <div class="wizard-step" data-step="4"></div>
+        </div>
+        <div class="wizard-content" id="wizardContent">
+          <!-- 动态内容 -->
+        </div>
+      </div>
+      <div class="modal-footer wizard-nav">
+        <button class="btn btn-secondary" id="wizardPrev" data-i18n="wizard.prev">上一步</button>
+        <button class="btn btn-primary" id="wizardNext" data-i18n="wizard.next">下一步</button>
+      </div>
+    </div>
   </div>
 
   <script src="renderer.js"></script>

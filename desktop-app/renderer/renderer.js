@@ -1063,9 +1063,688 @@ async function importConfig() {
   }
 }
 
+// ==================== 国际化 (i18n) ====================
+
+const i18n = {
+  zh: {
+    darkMode: '深色模式',
+    lightMode: '浅色模式',
+    ready: '就绪',
+    running: '运行中...',
+    'nav.logs': '日志',
+    'nav.advanced': '高级设置',
+    'logs.title': '历史日志',
+    'logs.desc': '查看历史运行日志和运行记录',
+    'logs.runHistory': '运行历史',
+    'logs.clearHistory': '清空历史',
+    'logs.noHistory': '暂无运行记录',
+    'logs.selectDate': '选择日期',
+    'logs.loadLog': '加载日志',
+    'logs.exportLog': '导出日志',
+    'logs.logPlaceholder': '选择日期后，日志将在此显示...',
+    'advanced.title': '高级设置',
+    'advanced.desc': '自定义 Prompt 模板、Webhook 通知等高级功能',
+    'advanced.promptTemplates': 'LLM Prompt 模板',
+    'advanced.promptHelp': '自定义 LLM 分析论文时使用的 Prompt 模板',
+    'advanced.templateSummary': '摘要生成',
+    'advanced.templateTranslation': '标题翻译',
+    'advanced.templateKeywords': '关键词提取',
+    'advanced.availableVars': '可用变量：',
+    'advanced.saveTemplate': '保存模板',
+    'advanced.resetTemplate': '恢复默认',
+    'advanced.webhookTitle': 'Webhook 通知',
+    'advanced.addWebhook': '+ 添加',
+    'advanced.webhookHelp': '配置 Webhook URL 接收任务完成通知',
+    'advanced.saveWebhooks': '保存 Webhook 配置',
+    'advanced.testWebhook': '发送测试通知',
+    'advanced.updateTitle': '软件更新',
+    'advanced.autoUpdate': '自动检查更新',
+    'advanced.autoUpdateDesc': '启动时自动检查新版本',
+    'advanced.checkNow': '立即检查更新',
+    'advanced.shortcuts': '快捷键',
+    'advanced.shortcutsHelp': '按 ? 键可随时查看快捷键列表',
+    'shortcuts.run': '开始运行',
+    'shortcuts.stop': '停止任务',
+    'shortcuts.save': '保存配置',
+    'shortcuts.theme': '切换主题',
+    'shortcuts.help': '显示快捷键',
+    'update.available': '发现新版本可用！',
+    'update.later': '稍后提醒',
+    'update.download': '立即更新',
+    'wizard.title': '欢迎使用 Paper Flow',
+    'wizard.prev': '上一步',
+    'wizard.next': '下一步',
+    'wizard.skip': '跳过',
+    'wizard.done': '完成',
+    'toast.configSaved': '配置已保存',
+    'toast.exportSuccess': '导出成功',
+    'toast.webhookTestSent': '测试通知已发送'
+  },
+  en: {
+    darkMode: 'Dark Mode',
+    lightMode: 'Light Mode',
+    ready: 'Ready',
+    running: 'Running...',
+    'nav.logs': 'Logs',
+    'nav.advanced': 'Advanced',
+    'logs.title': 'History Logs',
+    'logs.desc': 'View history logs and run records',
+    'logs.runHistory': 'Run History',
+    'logs.clearHistory': 'Clear History',
+    'logs.noHistory': 'No run records yet',
+    'logs.selectDate': 'Select Date',
+    'logs.loadLog': 'Load Log',
+    'logs.exportLog': 'Export Log',
+    'logs.logPlaceholder': 'Select a date to view logs...',
+    'advanced.title': 'Advanced Settings',
+    'advanced.desc': 'Custom Prompt templates, Webhook notifications and more',
+    'advanced.promptTemplates': 'LLM Prompt Templates',
+    'advanced.promptHelp': 'Customize prompts used by LLM for paper analysis',
+    'advanced.templateSummary': 'Summary',
+    'advanced.templateTranslation': 'Translation',
+    'advanced.templateKeywords': 'Keywords',
+    'advanced.availableVars': 'Available variables:',
+    'advanced.saveTemplate': 'Save Template',
+    'advanced.resetTemplate': 'Reset to Default',
+    'advanced.webhookTitle': 'Webhook Notifications',
+    'advanced.addWebhook': '+ Add',
+    'advanced.webhookHelp': 'Configure Webhook URLs to receive task notifications',
+    'advanced.saveWebhooks': 'Save Webhooks',
+    'advanced.testWebhook': 'Send Test',
+    'advanced.updateTitle': 'Software Updates',
+    'advanced.autoUpdate': 'Auto-check Updates',
+    'advanced.autoUpdateDesc': 'Check for updates on startup',
+    'advanced.checkNow': 'Check Now',
+    'advanced.shortcuts': 'Keyboard Shortcuts',
+    'advanced.shortcutsHelp': 'Press ? to view shortcuts anytime',
+    'shortcuts.run': 'Start Run',
+    'shortcuts.stop': 'Stop Task',
+    'shortcuts.save': 'Save Config',
+    'shortcuts.theme': 'Toggle Theme',
+    'shortcuts.help': 'Show Shortcuts',
+    'update.available': 'New version available!',
+    'update.later': 'Later',
+    'update.download': 'Update Now',
+    'wizard.title': 'Welcome to Paper Flow',
+    'wizard.prev': 'Previous',
+    'wizard.next': 'Next',
+    'wizard.skip': 'Skip',
+    'wizard.done': 'Done',
+    'toast.configSaved': 'Config saved',
+    'toast.exportSuccess': 'Export successful',
+    'toast.webhookTestSent': 'Test notification sent'
+  }
+};
+
+let currentLang = 'zh';
+
+function setLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem('paperflow-lang', lang);
+
+  // Update all elements with data-i18n attribute
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (i18n[lang][key]) {
+      el.textContent = i18n[lang][key];
+    }
+  });
+
+  // Update language buttons
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === lang);
+  });
+}
+
+function t(key) {
+  return i18n[currentLang][key] || key;
+}
+
+// ==================== 主题切换 ====================
+
+function initTheme() {
+  const savedTheme = localStorage.getItem('paperflow-theme') || 'light';
+  setTheme(savedTheme);
+
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const currentTheme = document.documentElement.dataset.theme || 'light';
+    setTheme(currentTheme === 'light' ? 'dark' : 'light');
+  });
+}
+
+function setTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem('paperflow-theme', theme);
+
+  const themeToggle = document.getElementById('themeToggle');
+  const themeIcon = themeToggle.querySelector('.theme-icon');
+  const themeText = themeToggle.querySelector('[data-i18n]');
+
+  if (theme === 'dark') {
+    themeIcon.textContent = '☀️';
+    themeText.dataset.i18n = 'lightMode';
+    themeText.textContent = t('lightMode');
+  } else {
+    themeIcon.textContent = '🌙';
+    themeText.dataset.i18n = 'darkMode';
+    themeText.textContent = t('darkMode');
+  }
+}
+
+// ==================== 快捷键支持 ====================
+
+function initKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const modifier = isMac ? e.metaKey : e.ctrlKey;
+
+    // ? - 显示快捷键提示
+    if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
+      toggleShortcutHint();
+      return;
+    }
+
+    // Ctrl/Cmd + R - 开始运行
+    if (modifier && e.key === 'r') {
+      e.preventDefault();
+      if (!isRunning) {
+        document.getElementById('startRun').click();
+      }
+      return;
+    }
+
+    // Ctrl/Cmd + S - 停止任务 (无 shift)
+    if (modifier && e.key === 's' && !e.shiftKey) {
+      e.preventDefault();
+      if (isRunning) {
+        document.getElementById('stopRun').click();
+      }
+      return;
+    }
+
+    // Ctrl/Cmd + Shift + S - 保存配置
+    if (modifier && e.key === 'S' && e.shiftKey) {
+      e.preventDefault();
+      // 保存当前标签页的配置
+      const activeTab = document.querySelector('.tab-content.active');
+      if (activeTab) {
+        const saveBtn = activeTab.querySelector('[id^="save"]');
+        if (saveBtn) saveBtn.click();
+      }
+      return;
+    }
+
+    // Ctrl/Cmd + T - 切换主题
+    if (modifier && e.key === 't') {
+      e.preventDefault();
+      document.getElementById('themeToggle').click();
+      return;
+    }
+
+    // Escape - 关闭快捷键提示
+    if (e.key === 'Escape') {
+      document.getElementById('shortcutHint').classList.remove('visible');
+      document.getElementById('wizardModal').classList.remove('active');
+    }
+  });
+}
+
+function toggleShortcutHint() {
+  const hint = document.getElementById('shortcutHint');
+  hint.classList.toggle('visible');
+
+  // 3秒后自动隐藏
+  if (hint.classList.contains('visible')) {
+    setTimeout(() => {
+      hint.classList.remove('visible');
+    }, 5000);
+  }
+}
+
+// ==================== 新手引导向导 ====================
+
+const wizardSteps = [
+  {
+    icon: '👋',
+    title: '欢迎使用 Paper Flow',
+    titleEn: 'Welcome to Paper Flow',
+    description: 'Paper Flow 是一个自动化论文管理工具，帮助您自动抓取、分析和整理学术论文。',
+    descriptionEn: 'Paper Flow is an automated paper management tool that helps you fetch, analyze, and organize academic papers.'
+  },
+  {
+    icon: '🔑',
+    title: '配置 API 密钥',
+    titleEn: 'Configure API Keys',
+    description: '首先需要配置 Notion 和 LLM 服务的 API 密钥。点击侧边栏的"API 密钥"标签开始配置。',
+    descriptionEn: 'First, configure your Notion and LLM API keys. Click "API Keys" in the sidebar to start.'
+  },
+  {
+    icon: '🔍',
+    title: '设置搜索条件',
+    titleEn: 'Set Search Criteria',
+    description: '在"搜索配置"中设置您感兴趣的关键词和 ArXiv 分类，系统将自动抓取相关论文。',
+    descriptionEn: 'Set your keywords and ArXiv categories in "Search Config". The system will fetch relevant papers automatically.'
+  },
+  {
+    icon: '🚀',
+    title: '开始使用',
+    titleEn: 'Get Started',
+    description: '配置完成后，点击"运行"标签页启动论文抓取任务。您也可以在"定时任务"中设置自动运行计划。',
+    descriptionEn: 'After configuration, click "Run" to start fetching papers. You can also set up scheduled tasks in "Scheduler".'
+  }
+];
+
+let currentWizardStep = 0;
+
+function initWizard() {
+  const isFirstTime = !localStorage.getItem('paperflow-wizard-completed');
+
+  if (isFirstTime) {
+    setTimeout(() => {
+      showWizard();
+    }, 500);
+  }
+
+  document.getElementById('closeWizard').addEventListener('click', closeWizard);
+  document.getElementById('wizardPrev').addEventListener('click', prevWizardStep);
+  document.getElementById('wizardNext').addEventListener('click', nextWizardStep);
+
+  // 点击 overlay 关闭
+  document.getElementById('wizardModal').addEventListener('click', (e) => {
+    if (e.target.id === 'wizardModal') {
+      closeWizard();
+    }
+  });
+}
+
+function showWizard() {
+  currentWizardStep = 0;
+  updateWizardContent();
+  document.getElementById('wizardModal').classList.add('active');
+}
+
+function closeWizard() {
+  document.getElementById('wizardModal').classList.remove('active');
+  localStorage.setItem('paperflow-wizard-completed', 'true');
+}
+
+function updateWizardContent() {
+  const step = wizardSteps[currentWizardStep];
+  const content = document.getElementById('wizardContent');
+
+  const title = currentLang === 'en' ? step.titleEn : step.title;
+  const description = currentLang === 'en' ? step.descriptionEn : step.description;
+
+  content.innerHTML = `
+    <div class="wizard-icon">${step.icon}</div>
+    <div class="wizard-title">${title}</div>
+    <div class="wizard-description">${description}</div>
+  `;
+
+  // 更新步骤指示器
+  document.querySelectorAll('.wizard-step').forEach((el, i) => {
+    el.classList.remove('active', 'completed');
+    if (i < currentWizardStep) {
+      el.classList.add('completed');
+    } else if (i === currentWizardStep) {
+      el.classList.add('active');
+    }
+  });
+
+  // 更新按钮
+  const prevBtn = document.getElementById('wizardPrev');
+  const nextBtn = document.getElementById('wizardNext');
+
+  prevBtn.style.visibility = currentWizardStep === 0 ? 'hidden' : 'visible';
+
+  if (currentWizardStep === wizardSteps.length - 1) {
+    nextBtn.textContent = t('wizard.done');
+  } else {
+    nextBtn.textContent = t('wizard.next');
+  }
+}
+
+function prevWizardStep() {
+  if (currentWizardStep > 0) {
+    currentWizardStep--;
+    updateWizardContent();
+  }
+}
+
+function nextWizardStep() {
+  if (currentWizardStep < wizardSteps.length - 1) {
+    currentWizardStep++;
+    updateWizardContent();
+  } else {
+    closeWizard();
+  }
+}
+
+// ==================== 运行历史 ====================
+
+let runHistory = [];
+
+async function initRunHistory() {
+  runHistory = await window.electronAPI.getRunHistory();
+  renderRunHistory();
+
+  document.getElementById('clearHistory').addEventListener('click', clearRunHistory);
+}
+
+function renderRunHistory() {
+  const container = document.getElementById('historyList');
+
+  if (!runHistory || runHistory.length === 0) {
+    container.innerHTML = `<div class="paper-placeholder">${t('logs.noHistory')}</div>`;
+    return;
+  }
+
+  container.innerHTML = runHistory.slice(0, 20).map(item => `
+    <div class="history-item">
+      <div class="history-status ${item.status}"></div>
+      <div class="history-info">
+        <div class="history-time">${formatDateTime(new Date(item.startTime))}</div>
+        <div class="history-detail">
+          ${item.papersProcessed || 0} 篇论文 · ${item.duration || '-'}
+        </div>
+      </div>
+      <div class="history-actions">
+        <button class="btn btn-sm btn-secondary" onclick="viewHistoryLog('${item.logFile}')">查看日志</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function clearRunHistory() {
+  if (confirm(currentLang === 'en' ? 'Clear all run history?' : '确定要清空所有运行历史吗？')) {
+    await window.electronAPI.clearRunHistory();
+    runHistory = [];
+    renderRunHistory();
+    showToast(currentLang === 'en' ? 'History cleared' : '历史已清空', 'success');
+  }
+}
+
+function addRunHistoryEntry(entry) {
+  runHistory.unshift(entry);
+  renderRunHistory();
+  window.electronAPI.saveRunHistory(runHistory);
+}
+
+function viewHistoryLog(logFile) {
+  // 加载并显示特定日志
+  document.getElementById('logDate').value = logFile;
+  loadHistoryLog();
+}
+
+// ==================== 日志导出 ====================
+
+async function initLogExport() {
+  document.getElementById('exportLog').addEventListener('click', exportCurrentLog);
+}
+
+async function exportCurrentLog() {
+  const logContainer = document.getElementById('historyLog');
+  const content = logContainer.textContent;
+
+  if (!content || content.includes('选择日期后')) {
+    showToast(currentLang === 'en' ? 'No log to export' : '没有可导出的日志', 'warning');
+    return;
+  }
+
+  const date = document.getElementById('logDate').value || new Date().toISOString().slice(0, 10);
+
+  try {
+    const result = await window.electronAPI.exportLog({
+      content,
+      filename: `paper-flow-log-${date}.txt`
+    });
+
+    if (result.success) {
+      showToast(t('toast.exportSuccess'), 'success');
+    }
+  } catch (error) {
+    showToast('Export failed: ' + error.message, 'error');
+  }
+}
+
+// ==================== LLM Prompt 模板 ====================
+
+const defaultPromptTemplates = {
+  summary: `请分析以下论文并生成简洁的中文摘要：
+
+标题：{title}
+摘要：{abstract}
+作者：{authors}
+分类：{categories}
+
+请用 2-3 句话概括论文的核心贡献和主要方法。`,
+  translation: `请将以下英文论文标题翻译成中文，保持学术准确性：
+
+{title}`,
+  keywords: `请从以下论文中提取 5-8 个关键词：
+
+标题：{title}
+摘要：{abstract}
+
+请以逗号分隔输出关键词。`
+};
+
+let promptTemplates = { ...defaultPromptTemplates };
+let currentTemplateType = 'summary';
+
+async function initPromptTemplates() {
+  // 加载保存的模板
+  const saved = await window.electronAPI.getPromptTemplates();
+  if (saved) {
+    promptTemplates = { ...defaultPromptTemplates, ...saved };
+  }
+
+  // 初始化 UI
+  document.getElementById('promptTemplate').value = promptTemplates[currentTemplateType];
+
+  // 模板类型切换
+  document.querySelectorAll('.template-tag').forEach(tag => {
+    tag.addEventListener('click', () => {
+      document.querySelectorAll('.template-tag').forEach(t => t.classList.remove('active'));
+      tag.classList.add('active');
+      currentTemplateType = tag.dataset.template;
+      document.getElementById('promptTemplate').value = promptTemplates[currentTemplateType];
+    });
+  });
+
+  // 变量点击插入
+  document.querySelectorAll('.variable-tag').forEach(tag => {
+    tag.addEventListener('click', () => {
+      const textarea = document.getElementById('promptTemplate');
+      const varText = tag.dataset.var;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = textarea.value;
+      textarea.value = text.substring(0, start) + varText + text.substring(end);
+      textarea.focus();
+      textarea.setSelectionRange(start + varText.length, start + varText.length);
+    });
+  });
+
+  // 保存按钮
+  document.getElementById('savePromptTemplate').addEventListener('click', async () => {
+    promptTemplates[currentTemplateType] = document.getElementById('promptTemplate').value;
+    await window.electronAPI.savePromptTemplates(promptTemplates);
+    showToast(t('toast.configSaved'), 'success');
+  });
+
+  // 重置按钮
+  document.getElementById('resetPromptTemplate').addEventListener('click', () => {
+    promptTemplates[currentTemplateType] = defaultPromptTemplates[currentTemplateType];
+    document.getElementById('promptTemplate').value = promptTemplates[currentTemplateType];
+    showToast(currentLang === 'en' ? 'Reset to default' : '已恢复默认', 'success');
+  });
+}
+
+// ==================== Webhook 配置 ====================
+
+let webhooks = [];
+
+async function initWebhooks() {
+  webhooks = await window.electronAPI.getWebhooks() || [];
+  renderWebhooks();
+
+  document.getElementById('addWebhook').addEventListener('click', addWebhook);
+  document.getElementById('saveWebhooks').addEventListener('click', saveWebhooks);
+  document.getElementById('testWebhook').addEventListener('click', testWebhook);
+}
+
+function renderWebhooks() {
+  const container = document.getElementById('webhookList');
+
+  if (webhooks.length === 0) {
+    container.innerHTML = `<div class="paper-placeholder">点击"+ 添加"创建第一个 Webhook</div>`;
+    return;
+  }
+
+  container.innerHTML = webhooks.map((webhook, index) => `
+    <div class="webhook-item" data-index="${index}">
+      <div class="form-group flex-grow">
+        <input type="text" class="webhook-url" value="${webhook.url}" placeholder="https://your-webhook-url.com">
+      </div>
+      <div class="form-group">
+        <div class="webhook-events">
+          <label class="webhook-event-label">
+            <input type="checkbox" class="webhook-event" value="success" ${webhook.events?.includes('success') ? 'checked' : ''}>
+            <span>成功</span>
+          </label>
+          <label class="webhook-event-label">
+            <input type="checkbox" class="webhook-event" value="error" ${webhook.events?.includes('error') ? 'checked' : ''}>
+            <span>失败</span>
+          </label>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="removeWebhook(${index})">删除</button>
+    </div>
+  `).join('');
+}
+
+function addWebhook() {
+  webhooks.push({ url: '', events: ['success', 'error'] });
+  renderWebhooks();
+}
+
+function removeWebhook(index) {
+  webhooks.splice(index, 1);
+  renderWebhooks();
+}
+
+async function saveWebhooks() {
+  // 收集表单数据
+  const items = document.querySelectorAll('.webhook-item');
+  webhooks = Array.from(items).map(item => ({
+    url: item.querySelector('.webhook-url').value.trim(),
+    events: Array.from(item.querySelectorAll('.webhook-event:checked')).map(cb => cb.value)
+  })).filter(w => w.url);
+
+  await window.electronAPI.saveWebhooks(webhooks);
+  showToast(t('toast.configSaved'), 'success');
+}
+
+async function testWebhook() {
+  if (webhooks.length === 0 || !webhooks[0].url) {
+    showToast(currentLang === 'en' ? 'Please add a webhook first' : '请先添加 Webhook', 'warning');
+    return;
+  }
+
+  const result = await window.electronAPI.testWebhook(webhooks[0].url);
+  if (result.success) {
+    showToast(t('toast.webhookTestSent'), 'success');
+  } else {
+    showToast('Test failed: ' + result.message, 'error');
+  }
+}
+
+// ==================== 自动更新 ====================
+
+async function initAutoUpdate() {
+  // 获取当前版本
+  const version = await window.electronAPI.getAppVersion();
+  document.getElementById('currentVersion').textContent = `当前版本: v${version}`;
+
+  // 检查更新设置
+  const autoCheck = localStorage.getItem('paperflow-auto-update') !== 'false';
+  document.getElementById('autoCheckUpdate').checked = autoCheck;
+
+  document.getElementById('autoCheckUpdate').addEventListener('change', (e) => {
+    localStorage.setItem('paperflow-auto-update', e.target.checked);
+  });
+
+  document.getElementById('checkUpdate').addEventListener('click', checkForUpdates);
+  document.getElementById('dismissUpdate').addEventListener('click', () => {
+    document.getElementById('updateBanner').classList.remove('visible');
+  });
+  document.getElementById('downloadUpdate').addEventListener('click', downloadUpdate);
+
+  // 启动时检查更新
+  if (autoCheck) {
+    setTimeout(checkForUpdates, 3000);
+  }
+}
+
+async function checkForUpdates() {
+  const btn = document.getElementById('checkUpdate');
+  btn.textContent = currentLang === 'en' ? 'Checking...' : '检查中...';
+  btn.disabled = true;
+
+  try {
+    const result = await window.electronAPI.checkForUpdates();
+
+    if (result.hasUpdate) {
+      document.getElementById('updateMessage').textContent =
+        currentLang === 'en'
+          ? `New version ${result.version} available!`
+          : `发现新版本 ${result.version}！`;
+      document.getElementById('updateBanner').classList.add('visible');
+    } else {
+      showToast(currentLang === 'en' ? 'You are up to date!' : '已是最新版本', 'success');
+    }
+  } catch (error) {
+    showToast('Check failed: ' + error.message, 'error');
+  }
+
+  btn.textContent = t('advanced.checkNow');
+  btn.disabled = false;
+}
+
+async function downloadUpdate() {
+  await window.electronAPI.downloadUpdate();
+}
+
+// ==================== 语言切换初始化 ====================
+
+function initLanguageSwitch() {
+  const savedLang = localStorage.getItem('paperflow-lang') || 'zh';
+  setLanguage(savedLang);
+
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setLanguage(btn.dataset.lang);
+    });
+  });
+}
+
+// ==================== 格式化日期时间 ====================
+
+function formatDateTime(date) {
+  return date.toLocaleString(currentLang === 'en' ? 'en-US' : 'zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
 // ==================== 初始化 ====================
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // 基础初始化
   initNavigation();
   initCategoryGrid();
   await loadConfig();
@@ -1077,4 +1756,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 初始化论文管理和定时任务
   await initPapersTab();
   await initSchedulerTab();
+
+  // 初始化高级功能
+  initTheme();
+  initLanguageSwitch();
+  initKeyboardShortcuts();
+  initWizard();
+  await initRunHistory();
+  initLogExport();
+  await initPromptTemplates();
+  await initWebhooks();
+  await initAutoUpdate();
 });

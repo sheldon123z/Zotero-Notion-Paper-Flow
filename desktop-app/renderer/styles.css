@@ -18,6 +18,29 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   --radius: 8px;
   --radius-lg: 12px;
+  --input-bg: #ffffff;
+  --log-bg: #1e1e1e;
+  --log-text: #d4d4d4;
+}
+
+/* 深色主题 */
+[data-theme="dark"] {
+  --primary-color: #6366f1;
+  --primary-hover: #4f46e5;
+  --secondary-color: #9ca3af;
+  --bg-color: #111827;
+  --card-bg: #1f2937;
+  --sidebar-bg: #0f172a;
+  --sidebar-hover: #1e293b;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-light: #9ca3af;
+  --border-color: #374151;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  --input-bg: #374151;
+  --log-bg: #0f172a;
+  --log-text: #e5e7eb;
 }
 
 * {
@@ -265,6 +288,8 @@ select {
   border-radius: var(--radius);
   font-size: 14px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
 }
 
 input:focus,
@@ -473,8 +498,8 @@ textarea {
 
 /* 日志容器 */
 .log-container {
-  background: #1e1e1e;
-  color: #d4d4d4;
+  background: var(--log-bg);
+  color: var(--log-text);
   border-radius: var(--radius);
   padding: 16px;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
@@ -1012,4 +1037,482 @@ input[type="time"]:focus {
   .flex-2 {
     min-width: 100%;
   }
+}
+
+/* ==================== 主题切换按钮 ==================== */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  border-radius: var(--radius);
+  font-size: 14px;
+  width: 100%;
+  transition: all 0.15s ease;
+}
+
+.theme-toggle:hover {
+  background-color: var(--sidebar-hover);
+  color: white;
+}
+
+.theme-toggle .theme-icon {
+  font-size: 18px;
+}
+
+/* ==================== 设置下拉菜单 ==================== */
+.settings-dropdown {
+  position: relative;
+}
+
+.settings-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background: var(--sidebar-hover);
+  border-radius: var(--radius);
+  padding: 8px 0;
+  margin-bottom: 8px;
+  display: none;
+  box-shadow: var(--shadow-lg);
+}
+
+.settings-dropdown.open .settings-menu {
+  display: block;
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s ease;
+}
+
+.settings-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.settings-item .item-icon {
+  font-size: 16px;
+}
+
+/* ==================== 模态框 ==================== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-20px);
+  transition: transform 0.2s ease;
+}
+
+.modal-overlay.active .modal {
+  transform: translateY(0);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--text-light);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+/* ==================== 引导向导 ==================== */
+.wizard-steps {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.wizard-step {
+  width: 40px;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
+
+.wizard-step.active {
+  background: var(--primary-color);
+}
+
+.wizard-step.completed {
+  background: var(--success-color);
+}
+
+.wizard-content {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.wizard-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.wizard-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.wizard-description {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+/* ==================== 快捷键提示 ==================== */
+.shortcut-hint {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-lg);
+  z-index: 900;
+  display: none;
+}
+
+.shortcut-hint.visible {
+  display: block;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.shortcut-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  font-size: 13px;
+}
+
+.shortcut-key {
+  background: var(--bg-color);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ==================== 运行历史 ==================== */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--bg-color);
+  border-radius: var(--radius);
+  transition: background 0.15s ease;
+}
+
+.history-item:hover {
+  background: var(--border-color);
+}
+
+.history-status {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.history-status.success {
+  background: var(--success-color);
+}
+
+.history-status.error {
+  background: var(--danger-color);
+}
+
+.history-status.running {
+  background: var(--warning-color);
+  animation: pulse 1.5s infinite;
+}
+
+.history-info {
+  flex: 1;
+}
+
+.history-time {
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.history-detail {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.history-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ==================== Prompt 模板编辑器 ==================== */
+.template-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.template-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.template-tag {
+  padding: 6px 12px;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.template-tag:hover {
+  border-color: var(--primary-color);
+}
+
+.template-tag.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.template-content textarea {
+  min-height: 200px;
+}
+
+.template-variables {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-color);
+  border-radius: var(--radius);
+}
+
+.variable-tag {
+  padding: 4px 10px;
+  background: var(--card-bg);
+  border: 1px dashed var(--border-color);
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: monospace;
+  cursor: pointer;
+}
+
+.variable-tag:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+/* ==================== Webhook 配置 ==================== */
+.webhook-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.webhook-item {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-color);
+  border-radius: var(--radius);
+  align-items: flex-start;
+}
+
+.webhook-item .form-group {
+  margin-bottom: 0;
+}
+
+.webhook-item .flex-grow {
+  flex: 1;
+}
+
+.webhook-events {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.webhook-event-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* ==================== 更新提示 ==================== */
+.update-banner {
+  position: fixed;
+  top: 0;
+  left: 220px;
+  right: 0;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+  color: white;
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 800;
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+}
+
+.update-banner.visible {
+  transform: translateY(0);
+}
+
+.update-banner-text {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.update-banner-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.update-banner .btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.update-banner .btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.update-banner .btn-primary {
+  background: white;
+  color: var(--primary-color);
+}
+
+/* ==================== 语言切换 ==================== */
+.lang-select {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+  padding: 4px;
+}
+
+.lang-btn {
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+
+.lang-btn:hover {
+  color: white;
+}
+
+.lang-btn.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
 }

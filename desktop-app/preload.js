@@ -51,4 +51,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 配置导入/导出
   exportConfig: (configData) => ipcRenderer.invoke('export-config', configData),
   importConfig: () => ipcRenderer.invoke('import-config'),
+
+  // 运行历史
+  getRunHistory: () => ipcRenderer.invoke('get-run-history'),
+  saveRunHistory: (history) => ipcRenderer.invoke('save-run-history', history),
+  clearRunHistory: () => ipcRenderer.invoke('clear-run-history'),
+
+  // 日志导出
+  exportLog: (data) => ipcRenderer.invoke('export-log', data),
+
+  // Prompt 模板
+  getPromptTemplates: () => ipcRenderer.invoke('get-prompt-templates'),
+  savePromptTemplates: (templates) => ipcRenderer.invoke('save-prompt-templates', templates),
+
+  // Webhook
+  getWebhooks: () => ipcRenderer.invoke('get-webhooks'),
+  saveWebhooks: (webhooks) => ipcRenderer.invoke('save-webhooks', webhooks),
+  testWebhook: (url) => ipcRenderer.invoke('test-webhook', url),
+
+  // 自动更新
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'),
 });
