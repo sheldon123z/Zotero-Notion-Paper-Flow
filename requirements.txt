@@ -1,6 +1,26 @@
-requests
-beautifulsoup4
+# 核心依赖
+requests>=2.28.0
+beautifulsoup4>=4.11.0
 arxiv>=2.1.0
-tqdm
+tqdm>=4.64.0
 openai>=1.28.0
-slack_sdk
+
+# Slack通知
+slack_sdk>=3.21.0
+
+# CLI工具
+click>=8.1.0
+
+# 类型检查和测试
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+mypy>=1.0.0
+types-requests>=2.28.0
+
+# 代码质量
+ruff>=0.1.0
+bandit>=1.7.0
+
+# 可选：本地LLM支持
+# ollama>=0.1.0

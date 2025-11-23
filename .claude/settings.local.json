@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:mac:*)",
+      "Bash(tree:*)",
+      "Bash(git push:*)",
+      "Bash(python -m py_compile:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
