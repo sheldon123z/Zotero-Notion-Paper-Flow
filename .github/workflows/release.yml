@@ -1,0 +1,265 @@
+# GitHub Release Workflow
+# Automatically builds and publishes releases when a version tag is pushed
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags like v2.0.0
+  workflow_dispatch:  # Allow manual trigger
+
+# Permissions for creating releases
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  # ==================== Build Python Package ====================
+  build-python:
+    name: Build Python Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build wheel setuptools
+
+      - name: Build Python package
+        run: |
+          python -m build --outdir dist/
+
+      - name: Upload Python artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-packages
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+          retention-days: 7
+
+  # ==================== Build Desktop App (macOS) ====================
+  build-desktop-macos:
+    name: Build Desktop App (macOS)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: desktop-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: desktop-app
+        run: npm ci
+
+      - name: Build macOS app
+        working-directory: desktop-app
+        run: npm run build:mac
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos
+          path: |
+            desktop-app/dist/*.dmg
+            desktop-app/dist/*.zip
+          retention-days: 7
+
+  # ==================== Build Desktop App (Windows) ====================
+  build-desktop-windows:
+    name: Build Desktop App (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: desktop-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: desktop-app
+        run: npm ci
+
+      - name: Build Windows app
+        working-directory: desktop-app
+        run: npm run build:win
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows
+          path: |
+            desktop-app/dist/*.exe
+          retention-days: 7
+
+  # ==================== Build Desktop App (Linux) ====================
+  build-desktop-linux:
+    name: Build Desktop App (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: desktop-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: desktop-app
+        run: npm ci
+
+      - name: Build Linux app
+        working-directory: desktop-app
+        run: npm run build:linux
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-linux
+          path: |
+            desktop-app/dist/*.AppImage
+            desktop-app/dist/*.deb
+          retention-days: 7
+
+  # ==================== Create GitHub Release ====================
+  release:
+    name: Create GitHub Release
+    needs: [build-python, build-desktop-macos, build-desktop-windows, build-desktop-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Read VERSION file
+        id: version_file
+        run: |
+          FILE_VERSION=$(cat VERSION | tr -d '[:space:]')
+          echo "file_version=$FILE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Verify version consistency
+        run: |
+          TAG_VERSION="${{ steps.version.outputs.version }}"
+          FILE_VERSION="${{ steps.version_file.outputs.file_version }}"
+          if [ "$TAG_VERSION" != "$FILE_VERSION" ]; then
+            echo "❌ Version mismatch: tag=$TAG_VERSION, VERSION file=$FILE_VERSION"
+            exit 1
+          fi
+          echo "✓ Version consistency verified: $TAG_VERSION"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Organize artifacts
+        run: |
+          mkdir -p release-assets
+          find artifacts/ -type f \( -name "*.whl" -o -name "*.tar.gz" -o -name "*.dmg" -o -name "*.zip" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" \) -exec cp {} release-assets/ \;
+          ls -lh release-assets/
+
+      - name: Generate checksums
+        working-directory: release-assets
+        run: |
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Extract the section for this version from CHANGELOG.md
+          awk "/## \[$VERSION\]/,/^## \[/" CHANGELOG.md | sed '/^## \[/d' > release-notes.md
+          
+          # If empty, use a default message
+          if [ ! -s release-notes.md ]; then
+            echo "Release version $VERSION" > release-notes.md
+            echo "" >> release-notes.md
+            echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details." >> release-notes.md
+          fi
+          
+          cat release-notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Paper Flow ${{ steps.version.outputs.tag }}
+          body_path: release-notes.md
+          files: |
+            release-assets/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ==================== Optional: Publish to PyPI ====================
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [build-python, release]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download Python artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-packages
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          skip-existing: true
+        continue-on-error: true  # Don't fail if PyPI publishing fails
+
+  # ==================== Release Summary ====================
+  summary:
+    name: Release Summary
+    needs: [release, publish-pypi]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Print release summary
+        run: |
+          echo "=== Release Summary ==="
+          echo "Version: ${{ needs.release.outputs.version }}"
+          echo "Build status: ${{ needs.build-python.result }}"
+          echo "Release status: ${{ needs.release.result }}"
+          echo "PyPI publish: ${{ needs.publish-pypi.result }}"
+          echo "======================="
+          
+          if [[ "${{ needs.release.result }}" == "success" ]]; then
+            echo "✅ Release created successfully!"
+            echo "🚀 View release at: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+          else
+            echo "❌ Release failed"
+            exit 1
+          fi

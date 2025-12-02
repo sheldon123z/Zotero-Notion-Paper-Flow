@@ -123,7 +123,7 @@ ipcMain.handle('get-env-config', async () => {
     DEEPSEEK_URL: 'https://api.deepseek.com',
     ZOTERO_API_KEY: '',
     ZOTERO_USER_ID: '',
-    ZOTERO_GROUP_ID: '',
+    ZOTERO_LIBRARY_ID: '',
     WOLAI_TOKEN: '',
     WOLAI_DB_ID: '',
     SLACK_API_KEY: '',
@@ -150,7 +150,7 @@ ipcMain.handle('save-env-config', async (event, envConfig) => {
 ipcMain.handle('run-python-script', async (event, options) => {
   return new Promise((resolve, reject) => {
     if (pythonProcess) {
-      reject(new Error('已有任务在运行中'));
+      reject(new Error('已有任务在运行中，请等待当前任务完成'));
       return;
     }
 
@@ -201,7 +201,8 @@ ipcMain.handle('run-python-script', async (event, options) => {
     const envConfig = store.get('envConfig', {});
 
     Object.keys(envConfig).forEach(key => {
-      if (envConfig[key]) {
+      // 只有当配置值不为空字符串时才覆盖环境变量
+      if (envConfig[key] && envConfig[key].trim() !== '') {
         env[key] = envConfig[key];
       }
     });
@@ -304,6 +305,9 @@ ipcMain.handle('validate-config', async (event, config) => {
     if (!config.env.ZOTERO_USER_ID) {
       errors.push('Zotero User ID 未配置');
     }
+    if (!config.env.ZOTERO_LIBRARY_ID) {
+      errors.push('Zotero Library ID 未配置');
+    }
   }
 
   if (config.services.wolai) {
@@ -331,7 +335,9 @@ ipcMain.handle('read-log-file', async (event, date) => {
       date = new Date().toISOString().split('T')[0];
     }
 
-    const logFile = path.join(logsDir, `${date}.log`);
+    // 将日期格式从 YYYY-MM-DD 转换为 YYYYMMDD 以匹配 Python 后端的日志文件命名
+    const formattedDate = date.replace(/-/g, '');
+    const logFile = path.join(logsDir, `daily_paper_${formattedDate}.log`);
 
     if (fs.existsSync(logFile)) {
       const content = fs.readFileSync(logFile, 'utf-8');
@@ -518,6 +524,20 @@ function calculateNextRunTime(config) {
 // 运行定时任务
 async function runScheduledTask(config) {
   console.log('开始运行定时任务...');
+  
+  // 检查是否有手动任务在运行
+  if (pythonProcess) {
+    console.log('检测到手动任务正在运行，跳过此次定时任务');
+    schedulerStatus.lastResult = '跳过（手动任务运行中）';
+    
+    // 重新调度下次任务
+    const schedulerConfig = store.get('schedulerConfig', {});
+    if (schedulerConfig.enabled) {
+      startScheduler(schedulerConfig);
+    }
+    return;
+  }
+  
   schedulerStatus.lastRun = formatDateTime(new Date());
 
   try {
@@ -536,17 +556,28 @@ async function runScheduledTask(config) {
     const env = { ...process.env };
     const envConfig = store.get('envConfig', {});
     Object.keys(envConfig).forEach(key => {
-      if (envConfig[key]) {
+      // 只有当配置值不为空字符串时才覆盖环境变量
+      if (envConfig[key] && envConfig[key].trim() !== '') {
         env[key] = envConfig[key];
       }
     });
 
-    const process_child = spawn('python3', args, {
+    const scheduledProcess = spawn('python3', args, {
       cwd: projectRoot,
       env: env
     });
 
-    process_child.on('close', (code) => {
+    // 记录定时任务的输出
+    let output = '';
+    scheduledProcess.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    scheduledProcess.stderr.on('data', (data) => {
+      output += data.toString();
+    });
+
+    scheduledProcess.on('close', (code) => {
       if (code === 0) {
         schedulerStatus.lastResult = '成功';
         if (config.notify) {
@@ -557,6 +588,7 @@ async function runScheduledTask(config) {
         if (config.notify) {
           showNotification('Paper Flow', `定时任务执行失败 (代码: ${code})`);
         }
+        console.error('定时任务失败输出:', output);
       }
 
       // 重新调度下次任务
@@ -566,14 +598,26 @@ async function runScheduledTask(config) {
       }
     });
 
-    process_child.on('error', (error) => {
+    scheduledProcess.on('error', (error) => {
       schedulerStatus.lastResult = `错误: ${error.message}`;
       console.error('定时任务执行错误:', error);
+      
+      // 即使出错也要重新调度
+      const schedulerConfig = store.get('schedulerConfig', {});
+      if (schedulerConfig.enabled) {
+        startScheduler(schedulerConfig);
+      }
     });
 
   } catch (error) {
     schedulerStatus.lastResult = `错误: ${error.message}`;
     console.error('定时任务执行错误:', error);
+    
+    // 出错后重新调度
+    const schedulerConfig = store.get('schedulerConfig', {});
+    if (schedulerConfig.enabled) {
+      startScheduler(schedulerConfig);
+    }
   }
 }
 
@@ -596,6 +640,58 @@ function formatDateTime(date) {
 }
 
 // ==================== 系统功能 ====================
+
+// 检查 Python 环境
+ipcMain.handle('check-python-env', async () => {
+  const { exec } = require('child_process');
+  const util = require('util');
+  const execPromise = util.promisify(exec);
+  
+  try {
+    // 检查 Python 版本
+    const { stdout: versionOutput } = await execPromise('python3 --version');
+    const version = versionOutput.trim();
+    
+    // 检查必需的包
+    const projectRoot = path.resolve(__dirname, '..');
+    const requirementsPath = path.join(projectRoot, 'requirements.txt');
+    
+    let missingPackages = [];
+    if (fs.existsSync(requirementsPath)) {
+      try {
+        const requirements = fs.readFileSync(requirementsPath, 'utf-8')
+          .split('\n')
+          .filter(line => line.trim() && !line.startsWith('#'))
+          .map(line => line.split('>=')[0].split('==')[0].trim());
+        
+        for (const pkg of requirements) {
+          try {
+            await execPromise(`python3 -c "import ${pkg.replace('-', '_')}"`).catch(() => {
+              missingPackages.push(pkg);
+            });
+          } catch (e) {
+            missingPackages.push(pkg);
+          }
+        }
+      } catch (e) {
+        console.error('检查依赖包失败:', e);
+      }
+    }
+    
+    return {
+      success: true,
+      python: version,
+      hasMissingPackages: missingPackages.length > 0,
+      missingPackages
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: 'Python 3 未安装或不在 PATH 中',
+      error: error.message
+    };
+  }
+});
 
 // 打开外部链接
 ipcMain.handle('open-external', async (event, url) => {
@@ -745,11 +841,14 @@ function testZoteroConnection(config, resolve) {
     resolve({ success: false, message: 'Zotero API Key 或 User ID 未配置' });
     return;
   }
+  
+  // 使用 User ID 或 Library ID (优先使用 User ID)
+  const libraryId = config.ZOTERO_USER_ID;
 
   const https = require('https');
   const options = {
     hostname: 'api.zotero.org',
-    path: `/users/${config.ZOTERO_USER_ID}/items?limit=1`,
+    path: `/users/${libraryId}/items?limit=1`,
     method: 'GET',
     headers: {
       'Zotero-API-Key': config.ZOTERO_API_KEY

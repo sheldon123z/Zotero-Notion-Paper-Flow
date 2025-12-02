@@ -41,6 +41,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSchedulerStatus: () => ipcRenderer.invoke('get-scheduler-status'),
 
   // 系统功能
+  checkPythonEnv: () => ipcRenderer.invoke('check-python-env'),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
   setAutoStart: (enable) => ipcRenderer.invoke('set-auto-start', enable),
   getAutoStartStatus: () => ipcRenderer.invoke('get-auto-start-status'),

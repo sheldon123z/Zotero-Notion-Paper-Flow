@@ -12,7 +12,8 @@ setup(
     install_requires=requirements,  # 自动从 requirements.txt 中加载
     entry_points={
         'console_scripts': [
-            'paper-assistant=daily_paper_app:main',  # 注册命令行入口
+            'paper-assistant=daily_paper_app:main',  # legacy alias (deprecated)
+            'paper-flow=main:main',                 # new unified entry point
         ],
     },
 )

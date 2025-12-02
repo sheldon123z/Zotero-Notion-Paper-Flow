@@ -1,4 +1,81 @@
-# 概述
+# Zotero-Notion-Paper-Flow
+
+[![Release](https://img.shields.io/github/v/release/sheldon123z/Zotero-Notion-Paper-Flow?color=blue)](https://github.com/sheldon123z/Zotero-Notion-Paper-Flow/releases)
+[![CI](https://github.com/sheldon123z/Zotero-Notion-Paper-Flow/actions/workflows/ci-test.yml/badge.svg)](https://github.com/sheldon123z/Zotero-Notion-Paper-Flow/actions)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/github/license/sheldon123z/Zotero-Notion-Paper-Flow)](LICENSE)
+
+自动化论文收集和管理工具，从 HuggingFace Daily Papers 和 arXiv 获取论文，使用 LLM 服务进行中文翻译和分析，并同步到 Notion、Zotero 和 Wolai。
+
+## ✨ 特性
+
+- 📚 **多数据源**: 支持 HuggingFace Daily Papers 和 arXiv 搜索
+- 🤖 **LLM 智能分析**: 使用 Moonshot/DeepSeek 进行论文摘要翻译和分类
+- 🔄 **多服务同步**: 自动同步到 Notion、Zotero、Wolai
+- 📥 **PDF 下载**: 自动下载论文 PDF 文件
+- 🎯 **智能分类**: 基于内容自动分类和标签
+- 🖥️ **桌面应用**: Electron GUI 配置管理工具
+- ⚡ **现代架构**: 接口驱动设计，易于扩展和测试
+
+## 📦 安装
+
+### 从 PyPI 安装（推荐）
+```bash
+pip install paper-flow
+```
+
+### 从源码安装
+```bash
+git clone https://github.com/sheldon123z/Zotero-Notion-Paper-Flow.git
+cd Zotero-Notion-Paper-Flow
+pip install -e .
+```
+
+### 下载桌面应用
+
+从 [Releases](https://github.com/sheldon123z/Zotero-Notion-Paper-Flow/releases/latest) 页面下载适合你系统的版本：
+- **macOS**: `PaperFlow-{version}.dmg` 或 `.zip`
+- **Windows**: `PaperFlow-Setup-{version}.exe` 或便携版
+- **Linux**: `PaperFlow-{version}.AppImage` 或 `.deb`
+
+## 🚀 快速开始
+
+### 基本使用
+```bash
+# 使用关键词搜索论文
+paper-flow --keywords "reinforcement learning" "LLM" --limit 10
+
+# 指定日期和分类
+paper-flow --keywords "diffusion" --date 2025-01-01 --categories cs.LG
+
+# 下载 PDF
+paper-flow --keywords "transformer" --download-pdf --pdf-dir ./papers
+```
+
+### 配置文件
+
+创建 `config.json`：
+```json
+{
+  "keywords": ["reinforcement learning"],
+  "categories": ["cs.LG", "cs.AI"],
+  "services": {
+    "notion": true,
+    "zotero": true,
+    "wolai": false
+  },
+  "download_pdf": true,
+  "pdf_dir": "papers",
+  "search_limit": 10
+}
+```
+
+然后运行：
+```bash
+paper-flow --config config.json
+```
+
+## 概述
 
 本项目可以扫描HuggingFace的[Daily Papers](https://huggingface.co/papers)页面，解析页面，获取相关论文标题、截图、ID等，调用Arxiv库获取论文更完善的信息，调用LLM API（目前是调用的是Moonshot API）对摘要进行分析，首先翻译成中文，然后解析摘要中提到的论文的动机、方法、结果，并尝试对论文打标签，最后将解析结果，原始论文的链接，使用Notion API，发送到Notion和**Zotero** API。
 

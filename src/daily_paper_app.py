@@ -1,6 +1,10 @@
 """
 Modified by Xiaodong Zheng on 2025/4/22
 增加错误处理、命令行参数解析、日志记录、PDF自动下载和可配置性
+
+DEPRECATED: This entry point is deprecated and will be removed in v3.0.0
+Please use `paper-flow` command or `python -m main` instead.
+See docs/MIGRATION.md for migration guide.
 """
 import os
 import sys
@@ -8,10 +12,20 @@ import json
 import logging
 import argparse
 import traceback
+import warnings
 from pathlib import Path
 from datetime import datetime, timedelta
 from tqdm import tqdm
 import time
+
+# Show deprecation warning
+warnings.warn(
+    "daily_paper_app.py is deprecated and will be removed in v3.0.0. "
+    "Please use 'paper-flow' command or 'python -m main' instead. "
+    "See docs/MIGRATION.md for migration guide.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 # 配置路径
 project_root = Path(__file__).parent.parent.resolve()
