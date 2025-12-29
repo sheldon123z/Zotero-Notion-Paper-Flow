@@ -12,10 +12,10 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.request import urlretrieve
 
-from ..interfaces.data_source import DataSourceInterface
-from ..interfaces.llm import LLMInterface
-from ..interfaces.storage import StorageInterface
-from ..models.paper import Paper
+from interfaces.data_source import DataSourceInterface
+from interfaces.llm import LLMInterface
+from interfaces.storage import StorageInterface
+from models.paper import Paper
 
 logger = logging.getLogger(__name__)
 

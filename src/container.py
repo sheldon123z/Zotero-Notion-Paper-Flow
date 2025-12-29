@@ -8,10 +8,10 @@
 import logging
 from typing import Any, Callable, Dict, List, Optional, Type, TypeVar
 
-from .config.settings import Settings
-from .interfaces.data_source import DataSourceInterface
-from .interfaces.llm import LLMInterface
-from .interfaces.storage import StorageInterface
+from config.settings import Settings
+from interfaces.data_source import DataSourceInterface
+from interfaces.llm import LLMInterface
+from interfaces.storage import StorageInterface
 
 logger = logging.getLogger(__name__)
 
