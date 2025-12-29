@@ -112,15 +112,15 @@ def create_container(settings: Settings) -> ServiceContainer:
     # 注册存储服务
     if settings.services.notion:
         container.register('notion', lambda s: NotionStorage(
-            db_id=s.notion.db_id if hasattr(s, 'notion') else None,
-            secret=s.notion.secret if hasattr(s, 'notion') else None,
+            db_id=s.notion.database_id if hasattr(s, 'notion') else None,
+            secret=s.notion.api_key if hasattr(s, 'notion') else None,
             create_time=datetime.now()
         ))
 
     if settings.services.zotero:
         container.register('zotero', lambda s: ZoteroStorage(
             api_key=s.zotero.api_key if hasattr(s, 'zotero') else None,
-            user_id=s.zotero.user_id if hasattr(s, 'zotero') else None,
+            user_id=s.zotero.library_id if hasattr(s, 'zotero') else None,
             create_time=datetime.now()
         ))
 

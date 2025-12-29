@@ -9,10 +9,10 @@ __version__ = "2.0.0"
 __author__ = "Xiaodong Zheng"
 
 # 导出主要模块
-from .config.settings import Settings
-from .container import ServiceContainer
-from .core.processor import PaperProcessor
-from .models.paper import Paper
+from config.settings import Settings
+from container import ServiceContainer
+from core.processor import PaperProcessor
+from models.paper import Paper
 
 __all__ = [
     'Settings',
