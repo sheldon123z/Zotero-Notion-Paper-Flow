@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -68,11 +68,11 @@ Issues = "https://github.com/sheldon123z/Zotero-Notion-Paper-Flow/issues"
 Documentation = "https://github.com/sheldon123z/Zotero-Notion-Paper-Flow#readme"
 
 [project.scripts]
-paper-flow = "main:main"
-paper-assistant = "daily_paper_app:main"
+paper-flow = "src.main:main"
+paper-assistant = "src.daily_paper_app:main"
 
-[tool.setuptools]
-packages = ["src"]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.setuptools.dynamic]
 version = {file = "VERSION"}
