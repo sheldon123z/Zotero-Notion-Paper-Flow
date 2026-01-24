@@ -476,7 +476,7 @@ def main(args=None):
                     hf_visitor = HFDailyPaperVisitor(output_root, dt=current_date)
                     processed, errors, total = process_hf_papers(
                         hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, feishu_service,
-                        enable_services, download_pdf, pdf_dir, category_map, default_category# 传递分类映射参数
+                        enable_services, download_pdf, pdf_dir, category_map, default_category  # 传递分类映射参数# 传递分类映射参数
                     )
                     total_hf_processed += processed
                     logger.info(f"日期 {current_date} HuggingFace论文: 处理 {processed}/{total}, 错误 {errors}")
