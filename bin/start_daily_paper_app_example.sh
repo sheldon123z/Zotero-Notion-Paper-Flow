@@ -11,6 +11,12 @@ export WOLAI_DB_ID="your_wolai_db_id"
 export NOTION_DB_ID="your_notion_db_id"
 export NOTION_SECRET="your_notion_secret"
 
+# Feishu (Lark) 配置
+export FEISHU_APP_ID="your_feishu_app_id"
+export FEISHU_APP_SECRET="your_feishu_app_secret"
+export FEISHU_APP_TOKEN="your_feishu_app_token"
+export FEISHU_TABLE_ID="your_feishu_table_id"
+
 export KIMI_API_KEY="sk-your_kimi_api_key"
 export KIMI_URL="https://api.moonshot.cn/v1"
 

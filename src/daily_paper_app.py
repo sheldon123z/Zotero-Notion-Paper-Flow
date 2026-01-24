@@ -38,6 +38,7 @@ from service.hf_visotor import HFDailyPaperVisitor
 from service.notion_service import NotionService
 from service.wolai_service import WolaiService 
 from service.zotero_service import ZoteroService
+from service.feishu_service import FeishuService
 from service.pdf_downloader import download_paper_pdfs
 
 # 设置日志
@@ -80,7 +81,8 @@ def load_config(config_path=None):
         "services": {
             "notion": True,
             "zotero": True,
-            "wolai": False
+            "wolai": False,
+            "feishu": False
         },
         "download_pdf": True,
         "pdf_dir": "papers/pdf",
@@ -118,12 +120,12 @@ def load_config(config_path=None):
         
     return default_config
 
-def process_arxiv_papers(arxiv_visitor, notion_service, wolai_service, zotero_service, 
+def process_arxiv_papers(arxiv_visitor, notion_service, wolai_service, zotero_service, feishu_service,
                         keywords, categories, date, limit=20, enable_services=None, 
                         download_pdf=True, pdf_dir=None, category_map=None, default_category=None):
     """处理ArXiv论文"""
     if enable_services is None:
-        enable_services = {"notion": True, "zotero": True, "wolai": True}
+        enable_services = {"notion": True, "zotero": True, "wolai": True, "feishu": False}
         
     if category_map is None:
         category_map = {}
@@ -216,6 +218,16 @@ def process_arxiv_papers(arxiv_visitor, notion_service, wolai_service, zotero_se
                         logger.error(f"插入到我来时出错: {e}")
                         logger.debug(traceback.format_exc())
                 
+                # 插入到飞书
+                if enable_services.get("feishu", False) and feishu_service is not None:
+                    try:
+                        logger.info(f"插入到飞书: {arxiv_obj.id}")
+                        feishu_service.insert(arxiv_obj)
+                        logger.info(f"成功插入到飞书: {arxiv_obj.id}")
+                    except Exception as e:
+                        logger.error(f"插入到飞书时出错: {e}")
+                        logger.debug(traceback.format_exc())
+                
                 # 标记为已处理
                 arxiv_ckpt.add(arxiv_obj.id)
                 arxiv_ckpt_file.write(arxiv_obj.id + '\n')
@@ -229,11 +241,11 @@ def process_arxiv_papers(arxiv_visitor, notion_service, wolai_service, zotero_se
     
     return processed_count, error_count, len(search_results)
 
-def process_hf_papers(hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, 
+def process_hf_papers(hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, feishu_service,
                       enable_services=None, download_pdf=True, pdf_dir=None, category_map=None, default_category=None):
     """处理HuggingFace论文"""
     if enable_services is None:
-        enable_services = {"notion": True, "zotero": True, "wolai": True}
+        enable_services = {"notion": True, "zotero": True, "wolai": True, "feishu": False}
         
     if category_map is None:
         category_map = {}
@@ -331,6 +343,16 @@ def process_hf_papers(hf_visitor, arxiv_visitor, notion_service, wolai_service, 
                         logger.error(f"插入到我来时出错: {e}")
                         logger.debug(traceback.format_exc())
                 
+                # 插入到飞书
+                if enable_services.get("feishu", False) and feishu_service is not None:
+                    try:
+                        logger.info(f"插入到飞书: {hf_obj['id']}")
+                        feishu_service.insert(arxiv_obj)
+                        logger.info(f"成功插入到飞书: {hf_obj['id']}")
+                    except Exception as e:
+                        logger.error(f"插入到飞书时出错: {e}")
+                        logger.debug(traceback.format_exc())
+                
                 # 标记为已处理
                 ckpt.add(hf_obj['id'])
                 ckpt_file.write(hf_obj['id'] + '\n')
@@ -412,6 +434,7 @@ def main(args=None):
     arxiv_visitor = ArxivVisitor(output_dir=output_root)
     notion_service = NotionService(create_time=create_time) if enable_services.get("notion") else None
     wolai_service = WolaiService() if enable_services.get("wolai") else None
+    feishu_service = FeishuService() if enable_services.get("feishu") else None
     zotero_service = ZoteroService(create_time=create_time, use_proxy=True) if enable_services.get("zotero") else None
     
     # 处理多天数据
@@ -437,7 +460,7 @@ def main(args=None):
             if not (hasattr(args, 'no_arxiv') and args.no_arxiv):
                 try:
                     processed, errors, total = process_arxiv_papers(
-                        arxiv_visitor, notion_service, wolai_service, zotero_service,
+                        arxiv_visitor, notion_service, wolai_service, zotero_service, feishu_service,
                         keywords, categories, current_date, limit, enable_services,
                         download_pdf, pdf_dir, category_map, default_category  # 传递分类映射参数
                     )
@@ -452,8 +475,8 @@ def main(args=None):
                 try:
                     hf_visitor = HFDailyPaperVisitor(output_root, dt=current_date)
                     processed, errors, total = process_hf_papers(
-                        hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, 
-                        enable_services, download_pdf, pdf_dir, category_map, default_category  # 传递分类映射参数
+                        hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, feishu_service,
+                        enable_services, download_pdf, pdf_dir, category_map, default_category# 传递分类映射参数
                     )
                     total_hf_processed += processed
                     logger.info(f"日期 {current_date} HuggingFace论文: 处理 {processed}/{total}, 错误 {errors}")
@@ -482,7 +505,7 @@ def main(args=None):
         if not (hasattr(args, 'no_arxiv') and args.no_arxiv):
             try:
                 processed, errors, total = process_arxiv_papers(
-                    arxiv_visitor, notion_service, wolai_service, zotero_service,
+                    arxiv_visitor, notion_service, wolai_service, zotero_service, feishu_service,
                     keywords, categories, date, limit, enable_services,
                     download_pdf, pdf_dir, category_map, default_category
                 )
@@ -497,7 +520,7 @@ def main(args=None):
             try:
                 hf_visitor = HFDailyPaperVisitor(output_root, dt=date)
                 processed, errors, total = process_hf_papers(
-                    hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, 
+                    hf_visitor, arxiv_visitor, notion_service, wolai_service, zotero_service, feishu_service,
                     enable_services, download_pdf, pdf_dir, category_map, default_category
                 )
                 hf_processed = processed
