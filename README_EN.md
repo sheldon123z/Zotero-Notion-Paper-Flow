@@ -2,13 +2,13 @@
 
 [中文文档](./README.md) | English
 
-An automated academic paper collection and management tool that fetches papers from HuggingFace Daily Papers and arXiv, uses LLM (Moonshot/DeepSeek) for Chinese summary translation and parsing, then syncs to Notion, Zotero, and Wolai.
+An automated academic paper collection and management tool that fetches papers from HuggingFace Daily Papers and arXiv, uses LLM (Moonshot/DeepSeek) for Chinese summary translation and parsing, then syncs to Notion, Zotero, Wolai, and Feishu (Lark).
 
 ## Features
 
 - **Multi-source Paper Collection**: Automatically fetch latest papers from HuggingFace Daily Papers and arXiv
 - **AI-powered Analysis**: Use LLM to translate abstracts to Chinese, extract key insights (motivation, methods, results), and auto-tag papers
-- **Multi-platform Sync**: Simultaneously sync papers to Notion database, Zotero library, and Wolai
+- **Multi-platform Sync**: Simultaneously sync papers to Notion database, Zotero library, Wolai, and Feishu (Lark) Bitable
 - **PDF Download**: Optionally download paper PDFs locally
 - **Checkpoint Mechanism**: Avoid duplicate processing of papers
 - **Scheduled Execution**: Support crontab scheduled tasks
@@ -34,6 +34,7 @@ An automated academic paper collection and management tool that fetches papers f
 - (Optional) Notion Integration Token and Database ID
 - (Optional) Zotero API Key
 - (Optional) Wolai API credentials
+- (Optional) Feishu (Lark) App credentials
 
 ### Installation
 
@@ -83,6 +84,12 @@ export WOLAI_APP_SECRETE="your-app-secret"
 export WOLAI_TOKEN="your-token"
 export WOLAI_DB_ID="your-db-id"
 
+# Feishu/Lark (optional)
+export FEISHU_APP_ID="cli_xxxxxxxxxx"
+export FEISHU_APP_SECRET="your-feishu-secret"
+export FEISHU_APP_TOKEN="bascnxxxxxxxxxxxxxx"
+export FEISHU_TABLE_ID="tblxxxxxxxxxxxxxx"
+
 # Proxy (optional)
 export HTTP_PROXY="http://127.0.0.1:7890"
 export HTTPS_PROXY="http://127.0.0.1:7890"
@@ -102,7 +109,8 @@ Edit `config.json` to customize behavior:
     "services": {
         "notion": true,
         "zotero": false,
-        "wolai": true
+        "wolai": true,
+        "feishu": false
     },
     "download_pdf": true,
     "pdf_dir": "papers",
@@ -171,7 +179,7 @@ crontab -e
 ### Data Flow
 
 ```
-HuggingFace/arXiv → ArxivVisitor → LLM Translation/Parsing → Notion/Zotero/Wolai
+HuggingFace/arXiv → ArxivVisitor → LLM Translation/Parsing → Notion/Zotero/Wolai/Feishu
 ```
 
 ### Project Structure
@@ -186,6 +194,7 @@ src/
 │   ├── notion_service.py   # Notion API integration
 │   ├── zotero_service.py   # Zotero API integration
 │   ├── wolai_service.py    # Wolai API integration
+│   ├── feishu_service.py   # Feishu (Lark) API integration
 │   └── pdf_downloader.py   # PDF download
 ├── entity/
 │   └── formatted_arxiv_obj.py  # Paper data entity class
