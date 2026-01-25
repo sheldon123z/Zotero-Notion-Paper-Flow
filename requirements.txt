@@ -8,6 +8,10 @@ openai>=1.28.0
 # Slack通知
 slack_sdk>=3.21.0
 
+# Feishu (Lark) 集成
+# Note: We use requests library for API calls, lark-oapi is optional
+# lark-oapi>=1.2.0
+
 # CLI工具
 click>=8.1.0
 

@@ -206,6 +206,43 @@
           </div>
         </div>
 
+        <!-- Feishu 配置 -->
+        <div class="config-card">
+          <div class="card-header">
+            <h3>飞书 (Feishu/Lark) 配置 <span class="badge optional">可选</span></h3>
+            <button class="btn btn-sm btn-secondary test-btn" data-service="feishu">测试连接</button>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="feishuAppId">App ID</label>
+              <div class="password-input-wrapper">
+                <input type="password" id="feishuAppId" placeholder="cli_xxxxxxxxxx">
+                <button type="button" class="password-toggle" data-target="feishuAppId">👁</button>
+              </div>
+              <span class="help-text">在 <a href="#" class="link" data-url="https://open.feishu.cn/app">飞书开放平台</a> 创建应用获取</span>
+            </div>
+            <div class="form-group flex-1">
+              <label for="feishuAppSecret">App Secret</label>
+              <div class="password-input-wrapper">
+                <input type="password" id="feishuAppSecret" placeholder="App Secret">
+                <button type="button" class="password-toggle" data-target="feishuAppSecret">👁</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="feishuAppToken">Bitable App Token</label>
+              <input type="text" id="feishuAppToken" placeholder="bascnxxxxxxxxxxxxxx">
+              <span class="help-text">从多维表格分享链接获取</span>
+            </div>
+            <div class="form-group flex-1">
+              <label for="feishuTableId">Table ID</label>
+              <input type="text" id="feishuTableId" placeholder="tblxxxxxxxxxxxxxx">
+              <span class="help-text">从多维表格链接获取</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Slack 配置 -->
         <div class="config-card">
           <h3>Slack 通知 <span class="badge optional">可选</span></h3>
@@ -347,6 +384,13 @@ diffusion model"></textarea>
               <div class="service-info">
                 <span class="service-name">我来 (Wolai)</span>
                 <span class="service-desc">同步论文到我来知识库</span>
+              </div>
+            </label>
+            <label class="service-item">
+              <input type="checkbox" id="enableFeishu">
+              <div class="service-info">
+                <span class="service-name">飞书 (Feishu/Lark)</span>
+                <span class="service-desc">同步论文到飞书多维表格</span>
               </div>
             </label>
           </div>

@@ -16,7 +16,8 @@
     "services": {
         "notion": true,
         "zotero": false,
-        "wolai": true
+        "wolai": true,
+        "feishu": false
     },
     "download_pdf": true,
     "pdf_dir": "papers",

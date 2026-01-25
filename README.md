@@ -11,7 +11,7 @@
 
 - 📚 **多数据源**: 支持 HuggingFace Daily Papers 和 arXiv 搜索
 - 🤖 **LLM 智能分析**: 使用 Moonshot/DeepSeek 进行论文摘要翻译和分类
-- 🔄 **多服务同步**: 自动同步到 Notion、Zotero、Wolai
+- 🔄 **多服务同步**: 自动同步到 Notion、Zotero、Wolai、Feishu (飞书)
 - 📥 **PDF 下载**: 自动下载论文 PDF 文件
 - 🎯 **智能分类**: 基于内容自动分类和标签
 - 🖥️ **桌面应用**: Electron GUI 配置管理工具
@@ -62,7 +62,8 @@ paper-flow --keywords "transformer" --download-pdf --pdf-dir ./papers
   "services": {
     "notion": true,
     "zotero": true,
-    "wolai": false
+    "wolai": false,
+    "feishu": false
   },
   "download_pdf": true,
   "pdf_dir": "papers",
@@ -77,7 +78,7 @@ paper-flow --config config.json
 
 ## 概述
 
-本项目可以扫描HuggingFace的[Daily Papers](https://huggingface.co/papers)页面，解析页面，获取相关论文标题、截图、ID等，调用Arxiv库获取论文更完善的信息，调用LLM API（目前是调用的是Moonshot API）对摘要进行分析，首先翻译成中文，然后解析摘要中提到的论文的动机、方法、结果，并尝试对论文打标签，最后将解析结果，原始论文的链接，使用Notion API，发送到Notion和**Zotero** API。
+本项目可以扫描HuggingFace的[Daily Papers](https://huggingface.co/papers)页面，解析页面，获取相关论文标题、截图、ID等，调用Arxiv库获取论文更完善的信息，调用LLM API（目前是调用的是Moonshot API）对摘要进行分析，首先翻译成中文，然后解析摘要中提到的论文的动机、方法、结果，并尝试对论文打标签，最后将解析结果，原始论文的链接，使用 Notion API、**Zotero** API、Wolai API 或 Feishu API 发送到对应平台。
 
 最终的效果如下图所示：
 
@@ -102,6 +103,13 @@ Notion 论文主列表：
   - 在[此页面](https://www.notion.so/my-integrations)点击Create new integration，创建一个token，创建好之后，记录下Internal Integration Secret，供后续认证使用
   - 在要写入的页面，点击右上角的三个点，在弹出的菜单中，点击Connect to，选择刚才生成的Integration名称
   - 同样点击要写入的页面右上角的三个点，在弹出的菜单中，点击Copy link to view，可以得到类似 https://sheldon123z.notion.site/d7fe8ee7761c4a1fb82dc8f0a07d8fe1?v=bf26f727808c47b4be34536f5e800362&pvs=4 的地址，其中的d7fe8ee7761c4a1fb82dc8f0a07d8fe1 就是要拷贝的Notion DB ID
+- Feishu (飞书) API 申请（可选）
+  - 访问[飞书开放平台](https://open.feishu.cn/app)创建企业自建应用
+  - 获取 App ID 和 App Secret（在应用的"凭证与基础信息"页面）
+  - 开启"多维表格"权限（在"权限管理"页面添加 `bitable:app`）
+  - 创建多维表格，并在表格设置中获取 App Token 和 Table ID
+  - App Token: 打开多维表格后，从 URL 中提取，格式为 `bascnxxxxxxxxxxxxxx`
+  - Table ID: 在表格中，点击表格标签，从 URL 中提取，格式为 `tblxxxxxxxxxxxxxx`
 - Slack API申请（可选），这一步主要是配置定时调度后，将每次程序运行结果发送到Slack，如果不需要的话，这步置空或者随意填写一个字符串即可 
 - Zotero API申请（可选），这一步主要是配置定时调度后，将每次程序运行结果发送到Zotero，如果不需要的话，这步置空或者随意填写一个字符串即可 申请地址为 https://www.zotero.org/settings/keys, 注意需要将读写权限打开
 
@@ -131,7 +139,7 @@ python setup.py install
 
 ## 修改启动脚本
 
-修改`bin/start_daily_paper_app.sh`中SLACK_API_KEY、KIMI_API_KEY、NOTION_SECRET、NOTION_DB_ID、ZOTERO_API_KEY、ZOTERO_API_SECRET，其中Zotero的API需要到页面版本Zotero中申请，申请后需要将Zotero API Key和Zotero API Secret填入，否则无法将论文添加到Zotero中，同时，请务必修改每在daily_paper_app.py中每个collection的编号，不然会插入新条目失败
+修改`bin/start_daily_paper_app.sh`中SLACK_API_KEY、KIMI_API_KEY、NOTION_SECRET、NOTION_DB_ID、ZOTERO_API_KEY、ZOTERO_API_SECRET、FEISHU_APP_ID、FEISHU_APP_SECRET、FEISHU_APP_TOKEN、FEISHU_TABLE_ID 等环境变量。其中Zotero的API需要到页面版本Zotero中申请，申请后需要将Zotero API Key和Zotero API Secret填入，否则无法将论文添加到Zotero中，同时，请务必修改每在daily_paper_app.py中每个collection的编号，不然会插入新条目失败
 
 如上所述，只有KIMI_API_KEY是必须的，其他的如果不需要可以随意输入其他字符串，如果需要使用其他的LLM，请修改`src/service/llm_service.py`中相关配置以及`bin/start_daily_paper_app.sh`中相关配置
 

@@ -128,6 +128,7 @@ function applyConfigToUI() {
     document.getElementById('enableNotion').checked = config.services.notion !== false;
     document.getElementById('enableZotero').checked = config.services.zotero === true;
     document.getElementById('enableWolai').checked = config.services.wolai === true;
+    document.getElementById('enableFeishu').checked = config.services.feishu === true;
     updateZoteroCategoriesVisibility();
   }
 
@@ -150,6 +151,10 @@ function applyEnvConfigToUI() {
   document.getElementById('zoteroGroupId').value = envConfig.ZOTERO_GROUP_ID || '';
   document.getElementById('wolaiToken').value = envConfig.WOLAI_TOKEN || '';
   document.getElementById('wolaiDbId').value = envConfig.WOLAI_DB_ID || '';
+  document.getElementById('feishuAppId').value = envConfig.FEISHU_APP_ID || '';
+  document.getElementById('feishuAppSecret').value = envConfig.FEISHU_APP_SECRET || '';
+  document.getElementById('feishuAppToken').value = envConfig.FEISHU_APP_TOKEN || '';
+  document.getElementById('feishuTableId').value = envConfig.FEISHU_TABLE_ID || '';
   document.getElementById('slackApiKey').value = envConfig.SLACK_API_KEY || '';
   document.getElementById('httpProxy').value = envConfig.HTTP_PROXY || '';
   document.getElementById('httpsProxy').value = envConfig.HTTPS_PROXY || '';
@@ -172,6 +177,10 @@ function collectEnvConfigFromUI() {
     ZOTERO_GROUP_ID: document.getElementById('zoteroGroupId').value.trim(),
     WOLAI_TOKEN: document.getElementById('wolaiToken').value.trim(),
     WOLAI_DB_ID: document.getElementById('wolaiDbId').value.trim(),
+    FEISHU_APP_ID: document.getElementById('feishuAppId').value.trim(),
+    FEISHU_APP_SECRET: document.getElementById('feishuAppSecret').value.trim(),
+    FEISHU_APP_TOKEN: document.getElementById('feishuAppToken').value.trim(),
+    FEISHU_TABLE_ID: document.getElementById('feishuTableId').value.trim(),
     SLACK_API_KEY: document.getElementById('slackApiKey').value.trim(),
     HTTP_PROXY: document.getElementById('httpProxy').value.trim(),
     HTTPS_PROXY: document.getElementById('httpsProxy').value.trim(),
@@ -217,7 +226,8 @@ function collectServiceConfigFromUI() {
     services: {
       notion: document.getElementById('enableNotion').checked,
       zotero: document.getElementById('enableZotero').checked,
-      wolai: document.getElementById('enableWolai').checked
+      wolai: document.getElementById('enableWolai').checked,
+      feishu: document.getElementById('enableFeishu').checked
     }
   };
 }
@@ -435,7 +445,8 @@ async function startRun() {
     services: {
       notion: document.getElementById('enableNotion').checked,
       zotero: document.getElementById('enableZotero').checked,
-      wolai: document.getElementById('enableWolai').checked
+      wolai: document.getElementById('enableWolai').checked,
+      feishu: document.getElementById('enableFeishu').checked
     },
     env: collectEnvConfigFromUI()
   };
