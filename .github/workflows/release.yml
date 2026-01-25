@@ -208,7 +208,7 @@ jobs:
           cat release-notes.md
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           name: Paper Flow ${{ steps.version.outputs.tag }}
           body_path: release-notes.md
