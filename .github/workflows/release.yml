@@ -174,7 +174,7 @@ jobs:
           echo "✓ Version consistency verified: $TAG_VERSION"
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts/
 
@@ -228,7 +228,7 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Download Python artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: python-packages
           path: dist/
