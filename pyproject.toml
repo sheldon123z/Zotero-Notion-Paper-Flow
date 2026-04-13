@@ -40,7 +40,7 @@ dependencies = [
     "beautifulsoup4>=4.11.0",
     "arxiv>=2.1.0",
     "tqdm>=4.64.0",
-    "openai>=1.28.0",
+    "openai>=2.31.0",
     "click>=8.1.0",
 ]
 
