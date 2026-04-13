@@ -41,7 +41,7 @@ dependencies = [
     "arxiv>=2.1.0",
     "tqdm>=4.64.0",
     "openai>=1.28.0",
-    "click>=8.1.0",
+    "click>=8.1.8",
 ]
 
 [project.optional-dependencies]
