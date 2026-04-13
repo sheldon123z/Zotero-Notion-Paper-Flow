@@ -37,7 +37,7 @@ classifiers = [
 
 dependencies = [
     "requests>=2.28.0",
-    "beautifulsoup4>=4.11.0",
+    "beautifulsoup4>=4.14.3",
     "arxiv>=2.1.0",
     "tqdm>=4.64.0",
     "openai>=1.28.0",
