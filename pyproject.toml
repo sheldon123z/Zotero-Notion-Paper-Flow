@@ -55,10 +55,10 @@ dev = [
     "bandit>=1.7.0",
 ]
 slack = [
-    "slack_sdk>=3.21.0",
+    "slack_sdk>=3.41.0",
 ]
 all = [
-    "slack_sdk>=3.21.0",
+    "slack_sdk>=3.41.0",
 ]
 
 [project.urls]
